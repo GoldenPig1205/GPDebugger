@@ -1,7 +1,7 @@
 # GPDebug
 
 A comprehensive debugging plugin for the **EXILED framework** in SCP: Secret Laboratory.
-It dynamically tracks all events occurring in-game using Reflection and outputs the property values of those events directly to the in-game client console (Remote Admin).
+It dynamically tracks all events occurring in-game using Reflection and outputs the property values of those events directly to the in-game client console.
 
 ## 🚀 Key Features
 
