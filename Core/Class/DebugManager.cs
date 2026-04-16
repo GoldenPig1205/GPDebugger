@@ -11,6 +11,7 @@ namespace GPDebug.Core.Class
     {
         public static HashSet<string> EnabledUsers = new();
         public static HashSet<string> EnabledHandlers = new(StringComparer.OrdinalIgnoreCase);
+        public static HashSet<string> IgnoredEvents = new(StringComparer.OrdinalIgnoreCase);
 
         public static bool IsEnabled(Player player) => EnabledUsers.Contains(player.UserId);
 

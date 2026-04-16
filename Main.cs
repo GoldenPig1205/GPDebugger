@@ -1,5 +1,6 @@
 ﻿using Exiled.API.Features;
 using GPDebug.Core.Class;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,12 @@ namespace GPDebug
         {
             Instance = this;
             base.OnEnabled();
+
+            DebugManager.IgnoredEvents.Clear();
+            foreach (var ignored in Config.IgnoredEvents)
+            {
+                DebugManager.IgnoredEvents.Add(ignored);
+            }
 
             Exiled.Events.Handlers.Server.WaitingForPlayers += OnWaitingForPlayers;
         }
@@ -50,7 +57,7 @@ namespace GPDebug
 
             foreach (var type in assembly.GetTypes())
             {
-                if (!type.IsClass || !type.IsAbstract || !type.IsSealed)
+                if (!type.IsClass)
                     continue;
 
                 if (string.IsNullOrEmpty(type.Namespace) || !type.Namespace.StartsWith("Exiled.Events.Handlers"))
@@ -58,26 +65,72 @@ namespace GPDebug
 
                 string handlerName = type.Name;
 
-                foreach (var eventInfo in type.GetEvents())
+                foreach (var eventInfo in type.GetEvents(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
                 {
-                    var handlerType = eventInfo.EventHandlerType;
-                    var invoke = handlerType.GetMethod("Invoke");
-                    var parameters = invoke.GetParameters();
+                    try
+                    {
+                        var handlerType = eventInfo.EventHandlerType;
+                        var invoke = handlerType.GetMethod("Invoke");
+                        var parameters = invoke.GetParameters();
 
-                    if (parameters.Length != 1)
-                        continue;
+                        if (parameters.Length != 1)
+                            continue;
 
-                    var paramType = parameters[0].ParameterType;
+                        var paramType = parameters[0].ParameterType;
 
-                    var method = GetType()
-                        .GetMethod(nameof(GenericHandler))
-                        .MakeGenericMethod(paramType);
+                        var method = GetType()
+                            .GetMethod(nameof(GenericHandler))
+                            .MakeGenericMethod(paramType);
 
-                    var del = Delegate.CreateDelegate(handlerType, this, method);
+                        var del = Delegate.CreateDelegate(handlerType, this, method);
 
-                    eventInfo.AddEventHandler(null, del);
+                        eventInfo.AddEventHandler(null, del);
 
-                    HandlersMap[paramType] = handlerName;
+                        HandlersMap[paramType] = handlerName;
+                    }
+                    catch { }
+                }
+
+                foreach (var propInfo in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                {
+                    try
+                    {
+                        var propType = propInfo.PropertyType;
+                        if (!propType.Name.StartsWith("Event"))
+                            continue;
+
+                        var eventObj = propInfo.GetValue(null);
+                        if (eventObj == null)
+                            continue;
+
+                        var subscribeMethod = propType.GetMethods().FirstOrDefault(m => 
+                            m.Name == "Subscribe" && 
+                            m.GetParameters().Length == 1 &&
+                            m.GetParameters()[0].ParameterType.Name.StartsWith("CustomEventHandler"));
+
+                        if (subscribeMethod == null)
+                            continue;
+
+                        var handlerType = subscribeMethod.GetParameters()[0].ParameterType;
+                        var invoke = handlerType.GetMethod("Invoke");
+                        var parameters = invoke.GetParameters();
+
+                        if (parameters.Length != 1)
+                            continue;
+
+                        var paramType = parameters[0].ParameterType;
+
+                        var method = GetType()
+                            .GetMethod(nameof(GenericHandler))
+                            .MakeGenericMethod(paramType);
+
+                        var del = Delegate.CreateDelegate(handlerType, this, method);
+
+                        subscribeMethod.Invoke(eventObj, new object[] { del });
+
+                        HandlersMap[paramType] = handlerName;
+                    }
+                    catch { }
                 }
             }
 
@@ -97,6 +150,10 @@ namespace GPDebug
             if (!DebugManager.IsHandlerEnabled(handler))
                 return;
 
+            string fullEventName = $"{handler}.{type.Name}";
+            if (DebugManager.IgnoredEvents.Contains(fullEventName))
+                return;
+
             foreach (var playerUserId in DebugManager.EnabledUsers.ToList())
             {
                 Player player = Player.Get(playerUserId);
@@ -104,7 +161,7 @@ namespace GPDebug
                 var sb = new StringBuilder();
                 int limit = Config.ConsoleMessageLengthLimit;
 
-                sb.AppendLine($"[EVENT] {handler}.{type.Name}");
+                sb.AppendLine($"[EVENT] <color=green>{handler}.{type.Name}</color>");
 
                 string evString = ev?.ToString() ?? "null";
                 if (evString.Length > limit)
@@ -129,8 +186,11 @@ namespace GPDebug
                     sb.AppendLine($"- {prop.Name} ({prop.PropertyType.Name}): {valueStr}");
                 }
 
-                string finalMessage = $"<size={Config.ConsoleMessageSize}>{sb}</size>";
-                player.SendConsoleMessage(finalMessage, "green");
+                string finalMessage = "\n" + string.Join("\n", sb.ToString()
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(line => $"<size=15>{line}</size>"));
+
+                player.SendConsoleMessage(finalMessage, Config.ConsoleMessageColor);
             }
         }
     }

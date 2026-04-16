@@ -16,7 +16,7 @@ namespace GPDebug.Core.Command
         public string Command => "gpdebug";
         public string[] Aliases => new string[] {};
         public string Description => "Debug tool";
-        public string[] Usage => new string[] { "start/stop/handler" };
+        public string[] Usage => new string[] { "start/stop/handler/ignore" };
 
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -24,7 +24,7 @@ namespace GPDebug.Core.Command
 
             if (arguments.Count == 0)
             {
-                response = "Usage: gpdebug start/stop/handler";
+                response = "Usage: gpdebug start/stop/handler/ignore";
                 return false;
             }
 
@@ -53,16 +53,62 @@ namespace GPDebug.Core.Command
 
                     if (action == "add")
                     {
-                        DebugManager.EnabledHandlers.Add(handler);
-                        response = $"Handler {handler} added";
-                        return true;
+                        if (DebugManager.EnabledHandlers.Add(handler))
+                        {
+                            response = $"Handler {handler} added";
+                            return true;
+                        }
+
+                        response = $"Handler {handler} is already added.";
+                        return false;
                     }
 
                     if (action == "remove")
                     {
-                        DebugManager.EnabledHandlers.Remove(handler);
-                        response = $"Handler {handler} removed";
-                        return true;
+                        if (DebugManager.EnabledHandlers.Remove(handler))
+                        {
+                            response = $"Handler {handler} removed";
+                            return true;
+                        }
+
+                        response = $"Handler {handler} is not in the list.";
+                        return false;
+                    }
+
+                    break;
+
+                case "ignore":
+                    if (arguments.Count < 3)
+                    {
+                        response = "Usage: gpdebug ignore add/remove Player.MakingNoiseEventArgs";
+                        return false;
+                    }
+
+                    string ignoreAction = arguments.At(1);
+                    string eventName = arguments.At(2);
+
+                    if (ignoreAction == "add")
+                    {
+                        if (DebugManager.IgnoredEvents.Add(eventName))
+                        {
+                            response = $"Event {eventName} is now ignored.";
+                            return true;
+                        }
+
+                        response = $"Event {eventName} is already ignored.";
+                        return false;
+                    }
+
+                    if (ignoreAction == "remove")
+                    {
+                        if (DebugManager.IgnoredEvents.Remove(eventName))
+                        {
+                            response = $"Event {eventName} removed from ignore list.";
+                            return true;
+                        }
+
+                        response = $"Event {eventName} is not in the ignore list.";
+                        return false;
                     }
 
                     break;
