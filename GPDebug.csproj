@@ -8,8 +8,8 @@
     <ProjectGuid>{E7FA6018-A868-42B0-A7ED-26CF34ED4FFD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GPDebug</RootNamespace>
-    <AssemblyName>GPDebug</AssemblyName>
+    <RootNamespace>GPDebugger</RootNamespace>
+    <AssemblyName>GPDebugger</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

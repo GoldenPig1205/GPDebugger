@@ -1,6 +1,6 @@
 ﻿using CommandSystem;
 using Exiled.API.Features;
-using GPDebug.Core.Class;
+using GPDebugger.Core.Class;
 using LabApi.Loader.Features.Plugins;
 using System;
 using System.Collections.Generic;
@@ -8,12 +8,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GPDebug.Core.Command
+namespace GPDebugger.Core.Command
 {
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
-    public class GpDebugCommand : ICommand, IUsageProvider
+    public class GPDebuggerCommand : ICommand, IUsageProvider
     {
-        public string Command => "gpdebug";
+        public string Command => "GPDebugger";
         public string[] Aliases => new string[] {};
         public string Description => "Debug tool";
         public string[] Usage => new string[] { "start/stop/handler/ignore" };
@@ -24,7 +24,7 @@ namespace GPDebug.Core.Command
 
             if (arguments.Count == 0)
             {
-                response = "Usage: gpdebug start/stop/handler/ignore";
+                response = "Usage: GPDebugger start/stop/handler/ignore";
                 return false;
             }
 
@@ -44,7 +44,7 @@ namespace GPDebug.Core.Command
                 case "handler":
                     if (arguments.Count < 3)
                     {
-                        response = "Usage: gpdebug handler add/remove Player";
+                        response = "Usage: GPDebugger handler add/remove Player";
                         return false;
                     }
 
@@ -80,7 +80,7 @@ namespace GPDebug.Core.Command
                 case "ignore":
                     if (arguments.Count < 3)
                     {
-                        response = "Usage: gpdebug ignore add/remove Player.MakingNoiseEventArgs";
+                        response = "Usage: GPDebugger ignore add/remove Player.MakingNoiseEventArgs";
                         return false;
                     }
 

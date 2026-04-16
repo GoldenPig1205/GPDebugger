@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GPDebug.Core.Class
+namespace GPDebugger.Core.Class
 {
     public static class DebugManager
     {

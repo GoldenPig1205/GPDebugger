@@ -1,5 +1,5 @@
 ﻿using Exiled.API.Features;
-using GPDebug.Core.Class;
+using GPDebugger.Core.Class;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -7,11 +7,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GPDebug
+namespace GPDebugger
 {
     public class Main : Plugin<Config>
     {
-        public override string Name => "GPDebug";
+        public override string Name => "GPDebugger";
         public override string Author => "GoldenPig1205";
         public override Version Version { get; } = new(1, 0, 0);
         public override Version RequiredExiledVersion { get; } = new(1, 2, 0, 5);
