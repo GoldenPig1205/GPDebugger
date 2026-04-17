@@ -3,8 +3,6 @@
 A comprehensive debugging plugin for the **EXILED framework** in SCP: Secret Laboratory.
 It dynamically tracks all events occurring in-game using Reflection and outputs the property values of those events directly to the in-game client console.
 
-https://github.com/user-attachments/assets/9e3a9faa-1f22-44f8-881e-cc120dbbad31
-
 ### 🎯 Who is this for?
 
 **For Plugin Developers:**
@@ -65,3 +63,9 @@ gp_debugger:
 
 ## 👨‍💻 Author
 - **GoldenPig1205**
+
+
+
+https://github.com/user-attachments/assets/8a355e6b-6c00-4f9a-8e90-03a3f5c6c6ed
+
+
