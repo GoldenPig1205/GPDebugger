@@ -111,7 +111,13 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="Core\Class\DebugManager.cs" />
-    <Compile Include="Core\Command\GPDebugger.cs" />
+    <Compile Include="Core\Command\GPDebugger\GPDebuggerCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\HandlerSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\IgnoreSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\ListSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\PrintSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\StartSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\StopSubCommand.cs" />
     <Compile Include="Core\Feature\HandlerLog.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

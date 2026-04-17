@@ -8,7 +8,7 @@ namespace GPDebugger
     {
         public override string Name => "GPDebugger";
         public override string Author => "GoldenPig1205";
-        public override Version Version { get; } = new(1, 0, 1);
+        public override Version Version { get; } = new(1, 0, 2);
         public override Version RequiredExiledVersion { get; } = typeof(Player).Assembly.GetName().Version;
 
         public static Main Instance { get; set; }
