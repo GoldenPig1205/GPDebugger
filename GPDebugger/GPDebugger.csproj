@@ -113,6 +113,7 @@
     <Compile Include="Core\Class\DebugManager.cs" />
     <Compile Include="Core\Command\GPDebugger\GPDebuggerCommand.cs" />
     <Compile Include="Core\Command\GPDebugger\HandlerSubCommand.cs" />
+    <Compile Include="Core\Command\GPDebugger\HelpSubCommand.cs" />
     <Compile Include="Core\Command\GPDebugger\IgnoreSubCommand.cs" />
     <Compile Include="Core\Command\GPDebugger\ListSubCommand.cs" />
     <Compile Include="Core\Command\GPDebugger\PrintSubCommand.cs" />

@@ -17,12 +17,13 @@ namespace GPDebugger.Core.Command
         public override string Command => "gpdebugger";
         public override string[] Aliases => new[] { "gpdebug" };
         public override string Description => "Debug tool";
-        public string[] Usage => new[] { "start/stop/handler/ignore/print/list" };
+        public string[] Usage => new[] { "help/start/stop/handler/ignore/print/list" };
 
         private static System.Collections.Generic.List<System.Reflection.MethodInfo> _cachedGetMethods;
 
         public override void LoadGeneratedCommands()
         {
+            RegisterCommand(new HelpSubCommand());
             RegisterCommand(new ListSubCommand());
             RegisterCommand(new StartSubCommand());
             RegisterCommand(new StopSubCommand());
@@ -33,8 +34,38 @@ namespace GPDebugger.Core.Command
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            response = "Usage:\n- GPDebugger start\n- GPDebugger stop\n- GPDebugger handler <add/remove> <Player/Server/etc>\n- GPDebugger ignore <add/remove> <EventName>\n- GPDebugger print <class/player/hit> [playerName]\n- GPDebugger list";
+            response = BuildHelpMessage();
             return false;
+        }
+
+        internal static bool ExecuteHelp(out string response)
+        {
+            response = BuildHelpMessage();
+            return true;
+        }
+
+        private static string BuildHelpMessage()
+        {
+            return
+                "GPDebugger Commands:\n" +
+                "- gpdebug help\n" +
+                "  Shows this help message.\n" +
+                "- gpdebug list\n" +
+                "  Lists available Exiled feature classes for print target.\n" +
+                "- gpdebug start\n" +
+                "  Enables debugger for you and subscribes all events.\n" +
+                "- gpdebug stop\n" +
+                "  Disables debugger for you.\n" +
+                "- gpdebug handler <add/remove> <EventClass>\n" +
+                "  Controls enabled handler groups.\n" +
+                "  Examples: gpdebug handler add Player, gpdebug handler remove Server\n" +
+                "- gpdebug ignore <add/remove> <EventName>\n" +
+                "  Manages ignored event args types.\n" +
+                "  Example: gpdebug ignore add Player.MakingNoiseEventArgs\n" +
+                "- gpdebug print <class/player/hit> [playerName]\n" +
+                "  class: Prints public static properties of Exiled feature class (e.g. Server, Map).\n" +
+                "  player: Prints player properties (self or target player).\n" +
+                "  hit: Prints object info you are looking at.\n";
         }
 
         internal static bool ExecuteList(out string response)
