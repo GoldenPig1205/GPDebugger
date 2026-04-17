@@ -1,54 +1,18 @@
 ﻿using Exiled.API.Features;
 using GPDebugger.Core.Class;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace GPDebugger
+namespace GPDebugger.Core.Feature
 {
-    public class Main : Plugin<Config>
+    public static class HandlerLog
     {
-        public override string Name => "GPDebugger";
-        public override string Author => "GoldenPig1205";
-        public override Version Version { get; } = new(1, 0, 0);
-        public override Version RequiredExiledVersion { get; } = new(1, 2, 0, 5);
+        public static bool IsRegistered = false;
+        public static Dictionary<Type, string> HandlersMap = new();
 
-        public static Main Instance { get; set; }
-
-        public bool IsRegistered = false;
-        public Dictionary<Type, string> HandlersMap = new();
-
-        public override void OnEnabled()
-        {
-            Instance = this;
-            base.OnEnabled();
-
-            DebugManager.IgnoredEvents.Clear();
-            foreach (var ignored in Config.IgnoredEvents)
-            {
-                DebugManager.IgnoredEvents.Add(ignored);
-            }
-
-            Exiled.Events.Handlers.Server.WaitingForPlayers += OnWaitingForPlayers;
-        }
-
-        public override void OnDisabled()
-        {
-            Exiled.Events.Handlers.Server.WaitingForPlayers -= OnWaitingForPlayers;
-
-            Instance = null;
-            base.OnDisabled();
-        }
-
-        public void OnWaitingForPlayers()
-        {
-            DebugManager.EnabledUsers.Clear();
-        }
-
-        public void RegisterAllEvents()
+        public static void RegisterAllEvents()
         {
             if (IsRegistered)
                 return;
@@ -78,11 +42,11 @@ namespace GPDebugger
 
                         var paramType = parameters[0].ParameterType;
 
-                        var method = GetType()
+                        var method = typeof(HandlerLog)
                             .GetMethod(nameof(GenericHandler))
                             .MakeGenericMethod(paramType);
 
-                        var del = Delegate.CreateDelegate(handlerType, this, method);
+                        var del = Delegate.CreateDelegate(handlerType, method);
 
                         eventInfo.AddEventHandler(null, del);
 
@@ -120,11 +84,11 @@ namespace GPDebugger
 
                         var paramType = parameters[0].ParameterType;
 
-                        var method = GetType()
+                        var method = typeof(HandlerLog)
                             .GetMethod(nameof(GenericHandler))
                             .MakeGenericMethod(paramType);
 
-                        var del = Delegate.CreateDelegate(handlerType, this, method);
+                        var del = Delegate.CreateDelegate(handlerType, method);
 
                         subscribeMethod.Invoke(eventObj, new object[] { del });
 
@@ -137,7 +101,7 @@ namespace GPDebugger
             IsRegistered = true;
         }
 
-        public void GenericHandler<T>(T ev)
+        public static void GenericHandler<T>(T ev)
         {
             if (DebugManager.EnabledUsers.Count == 0)
                 return;
@@ -154,43 +118,18 @@ namespace GPDebugger
             if (DebugManager.IgnoredEvents.Contains(fullEventName))
                 return;
 
+            string evString = ev?.ToString() ?? "null";
+            int limit = Main.Instance.Config.ConsoleMessageLengthLimit;
+            if (evString.Length > limit)
+                evString = evString.Substring(0, limit) + "...";
+
+            string header = $"[EVENT] <color=#55aaff>{handler}.{type.Name}</color>\n[ToString] {evString}";
+            string message = Command.GPDebuggerCommand.PrintProperties(type, ev, header);
+
             foreach (var playerUserId in DebugManager.EnabledUsers.ToList())
             {
                 Player player = Player.Get(playerUserId);
-
-                var sb = new StringBuilder();
-                int limit = Config.ConsoleMessageLengthLimit;
-
-                sb.AppendLine($"[EVENT] <color=green>{handler}.{type.Name}</color>");
-
-                string evString = ev?.ToString() ?? "null";
-                if (evString.Length > limit)
-                    evString = evString.Substring(0, limit) + "...";
-                sb.AppendLine($"[ToString] {evString}");
-
-                foreach (var prop in type.GetProperties())
-                {
-                    object value = null;
-
-                    try
-                    {
-                        value = prop.GetValue(ev);
-                    }
-                    catch { }
-
-                    string valueStr = value?.ToString() ?? "null";
-
-                    if (valueStr.Length > limit)
-                        valueStr = valueStr.Substring(0, limit) + "...";
-
-                    sb.AppendLine($"- {prop.Name} ({prop.PropertyType.Name}): {valueStr}");
-                }
-
-                string finalMessage = "\n" + string.Join("\n", sb.ToString()
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(line => $"<size=15>{line}</size>"));
-
-                player.SendConsoleMessage(finalMessage, Config.ConsoleMessageColor);
+                player.SendConsoleMessage(message, Main.Instance.Config.ConsoleMessageColor);
             }
         }
     }

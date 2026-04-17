@@ -111,7 +111,8 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="Core\Class\DebugManager.cs" />
-    <Compile Include="Core\Command\GPDebug.cs" />
+    <Compile Include="Core\Command\GPDebugger.cs" />
+    <Compile Include="Core\Feature\HandlerLog.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

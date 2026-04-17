@@ -20,6 +20,8 @@ Quickly check what kind of events are available to understand what new custom fe
 - **Handler Filtering**: Allows filtering specific handler events such as `Player`, `Server`, `Scp3114`, `Warhead`, etc. (Supports case-insensitive filtering).
 - **Event Ignoring (Anti-Spam)**: Allows ignoring spammy events (e.g., `Player.MakingNoiseEventArgs`) from flooding the console, either via command or config.
 - **Customizable Output**: Configure text size, colors, and property character length limits to keep logs clean and readable.
+- **In-game Object Inspector**: Use `gpdebug print hit` to inspect objects you are looking at via Raycast. It automatically finds corresponding Exiled API objects (like `Door`, `Room`, `Pickup`) and prints their properties.
+- **Class/Player Properties Printing**: Use `gpdebug print <class>` or `gpdebug print player` to dump all properties of an Exiled static feature class or a specific player directly to your console.
 
 ## 💻 Command Guide
 
@@ -33,13 +35,17 @@ You can use the following commands in the Remote Admin console:
 | `gpdebug handler remove <HandlerName>` | Removes the specified handler from the filter list. |
 | `gpdebug ignore add <EventName>` | Adds a specific event to the ignore list so it won't be printed. (e.g., `gpdebug ignore add Player.MakingNoiseEventArgs`) |
 | `gpdebug ignore remove <EventName>` | Removes a specific event from the ignore list. |
+| `gpdebug print <class>` | Prints all public static properties of the specified Exiled UI class (e.g., `Server`, `Map`). |
+| `gpdebug print player [name/id]` | Prints all properties of the target player (or yourself if no arguments given). |
+| `gpdebug print hit` | Casts a ray where you are looking, gets the GameObject, and prints its properties along with any matched Exiled API features (like `BreakableDoor`). |
+| `gpdebug list` | Shows a list of all Exiled.API.Features classes that are available for the `gpdebug print <class>` command. |
 
 ## ⚙️ Configuration
 
-Below are the available configuration options for `GPDebug`:
+Below are the available configuration options for `GPDebugger`:
 
 ```yml
-gp_debug:
+gp_debugger:
   is_enabled: true
   debug: false
   # The maximum length of a message to show in the console.
@@ -50,6 +56,7 @@ gp_debug:
   ignored_events:
   - 'Player.MakingNoiseEventArgs'
   - 'Player.UsingMicrophoneEventArgs'
+  - 'Item.UsingRadioPickupBatteryEventArgs'
 ```
 
 ## 🛠 Requirements
