@@ -51,6 +51,8 @@ gp_debugger:
   console_message_length_limit: 100
   # The color of the console messages.
   console_message_color: 'white'
+  # List of handlers to allow. If this list has at least one value, only these handlers will be logged. (ex. Player, Server)
+  handler_whitelist: []
   # List of events to ignore from being printed. (ex. Player.MakingNoiseEventArgs)
   ignored_events:
   - 'Player.MakingNoiseEventArgs'
