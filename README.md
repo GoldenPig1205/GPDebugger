@@ -61,6 +61,8 @@ gp_debugger:
   - 'Item.UsingRadioBatteryEventArgs'
 ```
 
+You can check handler list [here](https://github.com/Exiled-Team/EXILED/tree/master/Exiled.Events/Handlers).
+
 ## 🛠 Requirements
 
 - [EXILED Framework](https://github.com/Exiled-Team/EXILED)
