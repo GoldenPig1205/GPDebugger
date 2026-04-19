@@ -1,11 +1,9 @@
 ﻿using Exiled.API.Features;
-using GPDebugger.Core.Class;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace GPDebugger.Core.Feature
+namespace GPDebugger.Features
 {
     public static class HandlerLog
     {
@@ -125,7 +123,7 @@ namespace GPDebugger.Core.Feature
                 evString = evString.Substring(0, limit) + "...";
 
             string header = $"[EVENT] <color=#55aaff>{eventName}</color>\n[ToString] {evString}";
-            string message = Command.GPDebuggerCommand.PrintProperties(type, ev, header);
+            string message = GPDebugger.Commands.GPDebuggerCommand.PrintProperties(type, ev, header);
 
             foreach (var playerUserId in DebugManager.EnabledHandlerUsers.ToList())
             {

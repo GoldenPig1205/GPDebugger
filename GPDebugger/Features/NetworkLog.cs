@@ -1,5 +1,4 @@
-using Exiled.API.Features;
-using GPDebugger.Core.Class;
+﻿using Exiled.API.Features;
 using HarmonyLib;
 using Mirror;
 using System;
@@ -7,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace GPDebugger.Core.Feature
+namespace GPDebugger.Features
 {
     public static class NetworkLog
     {

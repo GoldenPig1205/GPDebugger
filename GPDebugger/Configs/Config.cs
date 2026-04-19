@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace GPDebugger
+namespace GPDebugger.Configs
 {
     public class Config : IConfig
     {

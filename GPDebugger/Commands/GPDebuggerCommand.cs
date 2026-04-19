@@ -1,13 +1,12 @@
-using CommandSystem;
+﻿using CommandSystem;
 using Exiled.API.Features;
-using GPDebugger.Core.Class;
-using GPDebugger.Core.Feature;
+using GPDebugger.Features;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace GPDebugger.Core.Command
+namespace GPDebugger.Commands
 {
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     public class GPDebuggerCommand : ParentCommand, IUsageProvider
@@ -23,11 +22,11 @@ namespace GPDebugger.Core.Command
 
         public override void LoadGeneratedCommands()
         {
-            RegisterCommand(new HelpSubCommand());
-            RegisterCommand(new ListSubCommand());
-            RegisterCommand(new HandlerSubCommand());
-            RegisterCommand(new NetworkSubCommand());
-            RegisterCommand(new PrintSubCommand());
+            RegisterCommand(new GPDebugger.HelpSubCommand());
+            RegisterCommand(new GPDebugger.ListSubCommand());
+            RegisterCommand(new GPDebugger.HandlerSubCommand());
+            RegisterCommand(new GPDebugger.NetworkSubCommand());
+            RegisterCommand(new GPDebugger.PrintSubCommand());
         }
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)

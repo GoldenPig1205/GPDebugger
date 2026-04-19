@@ -1,7 +1,7 @@
-using CommandSystem;
+﻿using CommandSystem;
 using System;
 
-namespace GPDebugger.Core.Command
+namespace GPDebugger.Commands.GPDebugger
 {
     internal sealed class NetworkSubCommand : ICommand, IUsageProvider
     {
