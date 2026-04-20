@@ -1,5 +1,4 @@
 ﻿using Exiled.API.Features;
-using HarmonyLib;
 using Mirror;
 using System;
 using System.Collections.Generic;
@@ -10,12 +9,11 @@ namespace GPDebugger.Features
 {
     public static class NetworkLog
     {
-        private static bool _isPatched;
-        private static Harmony _harmony;
+        private static bool _isRegistered;
 
         public static void RegisterAllEvents()
         {
-            if (_isPatched)
+            if (_isRegistered)
                 return;
 
             SeedKnownNetworkItems();
@@ -43,9 +41,8 @@ namespace GPDebugger.Features
                 catch { }
             }
 
-            _harmony = new Harmony("GPDebugger.NetworkLog");
-            PatchNetworkBehaviourMethods();
-            _isPatched = true;
+            NetworkPatcher.EnsurePatched();
+            _isRegistered = true;
         }
 
         private static void SeedKnownNetworkItems()
@@ -128,21 +125,6 @@ namespace GPDebugger.Features
             }
 
             return false;
-        }
-
-        private static void PatchNetworkBehaviourMethods()
-        {
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendCommandInternal", BindingFlags.NonPublic | BindingFlags.Instance), typeof(NetworkLog).GetMethod(nameof(PostfixSendCommandInternal), BindingFlags.NonPublic | BindingFlags.Static));
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance), typeof(NetworkLog).GetMethod(nameof(PostfixSendRPCInternal), BindingFlags.NonPublic | BindingFlags.Static));
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendTargetRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance), typeof(NetworkLog).GetMethod(nameof(PostfixSendTargetRPCInternal), BindingFlags.NonPublic | BindingFlags.Static));
-        }
-
-        private static void PatchMethod(MethodBase original, MethodInfo postfix)
-        {
-            if (original == null || postfix == null)
-                return;
-
-            _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
         }
 
         private static void OnInMessage(NetworkDiagnostics.MessageInfo info)

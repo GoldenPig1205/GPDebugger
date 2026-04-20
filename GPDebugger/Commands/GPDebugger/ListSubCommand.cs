@@ -3,13 +3,12 @@ using System;
 
 namespace GPDebugger.Commands.GPDebugger
 {
-    internal sealed class ListSubCommand : ICommand
+    internal sealed class ListSubCommand : BaseSubCommand
     {
-        public string Command => "list";
-        public string[] Aliases => Array.Empty<string>();
-        public string Description => "Compatibility alias for handler list.";
+        public override string Command => "list";
+        public override string Description => "Compatibility alias for handler list.";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerCommand.ExecuteHandlerList(out response);
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+            => GPDebuggerActions.ExecuteList(out response);
     }
 }

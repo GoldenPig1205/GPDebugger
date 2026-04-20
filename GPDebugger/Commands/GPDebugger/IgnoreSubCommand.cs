@@ -3,14 +3,13 @@ using System;
 
 namespace GPDebugger.Commands.GPDebugger
 {
-    internal sealed class IgnoreSubCommand : ICommand, IUsageProvider
+    internal sealed class IgnoreSubCommand : BaseSubCommand, IUsageProvider
     {
-        public string Command => "ignore";
-        public string[] Aliases => Array.Empty<string>();
-        public string Description => "Manage ignored events.";
+        public override string Command => "ignore";
+        public override string Description => "Manage ignored events.";
         public string[] Usage => new[] { "<add/remove> <EventName>" };
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerCommand.ExecuteIgnore(arguments, out response);
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+            => GPDebuggerActions.ExecuteIgnore(arguments, out response);
     }
 }

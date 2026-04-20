@@ -3,14 +3,13 @@ using System;
 
 namespace GPDebugger.Commands.GPDebugger
 {
-    internal sealed class PrintSubCommand : ICommand, IUsageProvider
+    internal sealed class PrintSubCommand : BaseSubCommand, IUsageProvider
     {
-        public string Command => "print";
-        public string[] Aliases => Array.Empty<string>();
-        public string Description => "Print debug info.";
+        public override string Command => "print";
+        public override string Description => "Print debug info.";
         public string[] Usage => new[] { "<class/player/hit> [playerName]" };
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerCommand.ExecutePrint(arguments, sender, out response);
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+            => GPDebuggerActions.ExecutePrint(arguments, sender, out response);
     }
 }

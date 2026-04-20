@@ -3,13 +3,12 @@ using System;
 
 namespace GPDebugger.Commands.GPDebugger
 {
-    internal sealed class HelpSubCommand : ICommand
+    internal sealed class HelpSubCommand : BaseSubCommand
     {
-        public string Command => "help";
-        public string[] Aliases => Array.Empty<string>();
-        public string Description => "Show detailed help for gpdebug.";
+        public override string Command => "help";
+        public override string Description => "Show detailed help for gpdebug.";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerCommand.ExecuteHelp(out response);
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+            => GPDebuggerActions.ExecuteHelp(out response);
     }
 }
