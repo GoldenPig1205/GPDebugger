@@ -10,6 +10,6 @@ namespace GPDebugger.Commands.GPDebugger
         public string[] Usage => new[] { "<add/remove> <EventName>" };
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerActions.ExecuteIgnore(arguments, out response);
+            => SubCommandHelper.ExecuteIgnore(arguments, out response);
     }
 }

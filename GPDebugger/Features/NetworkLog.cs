@@ -18,28 +18,17 @@ namespace GPDebugger.Features
 
             SeedKnownNetworkItems();
 
-            var assembly = typeof(NetworkBehaviour).Assembly;
-            var diagnosticsType = assembly.GetType("Mirror.NetworkDiagnostics");
-
-            if (diagnosticsType != null)
+            try
             {
-                var inMessageEvent = diagnosticsType.GetEvent("InMessageEvent", BindingFlags.Public | BindingFlags.Static);
-                var outMessageEvent = diagnosticsType.GetEvent("OutMessageEvent", BindingFlags.Public | BindingFlags.Static);
-
-                try
-                {
-                    if (inMessageEvent != null)
-                        inMessageEvent.AddEventHandler(null, new Action<NetworkDiagnostics.MessageInfo>(OnInMessage));
-                }
-                catch { }
-
-                try
-                {
-                    if (outMessageEvent != null)
-                        outMessageEvent.AddEventHandler(null, new Action<NetworkDiagnostics.MessageInfo>(OnOutMessage));
-                }
-                catch { }
+                NetworkDiagnostics.InMessageEvent += OnInMessage;
             }
+            catch { }
+
+            try
+            {
+                NetworkDiagnostics.OutMessageEvent += OnOutMessage;
+            }
+            catch { }
 
             NetworkPatcher.EnsurePatched();
             _isRegistered = true;

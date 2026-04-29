@@ -9,6 +9,9 @@ namespace GPDebugger.Commands.GPDebugger
         public override string Description => "Show detailed help for gpdebug.";
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerActions.ExecuteHelp(out response);
+        {
+            response = SubCommandHelper.BuildHelpMessage();
+            return false;
+        }
     }
 }

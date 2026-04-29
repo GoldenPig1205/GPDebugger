@@ -9,6 +9,6 @@ namespace GPDebugger.Commands.GPDebugger
         public override string Description => "Compatibility alias for handler list.";
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerActions.ExecuteList(out response);
+            => SubCommandHelper.ExecuteHandlerList(out response);
     }
 }

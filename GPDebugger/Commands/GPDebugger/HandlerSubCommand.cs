@@ -10,6 +10,6 @@ namespace GPDebugger.Commands.GPDebugger
         public string[] Usage => new[] { "<start/stop/list/ignore> [name]" };
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerActions.ExecuteHandler(arguments, sender, out response);
+            => SubCommandHelper.ExecuteHandler(arguments, sender, out response);
     }
 }

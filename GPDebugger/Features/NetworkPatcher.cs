@@ -16,16 +16,19 @@ namespace GPDebugger.Features
 
             _harmony = new Harmony("GPDebugger.NetworkLog");
 
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendCommandInternal", BindingFlags.NonPublic | BindingFlags.Instance), GetPostfix("PostfixSendCommandInternal"));
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance), GetPostfix("PostfixSendRPCInternal"));
-            PatchMethod(typeof(NetworkBehaviour).GetMethod("SendTargetRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance), GetPostfix("PostfixSendTargetRPCInternal"));
+            MethodBase sendCommandInternal = typeof(NetworkBehaviour).GetMethod("SendCommandInternal", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodBase sendRpcInternal = typeof(NetworkBehaviour).GetMethod("SendRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodBase sendTargetRpcInternal = typeof(NetworkBehaviour).GetMethod("SendTargetRPCInternal", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            MethodInfo postfixCommand = typeof(NetworkLog).GetMethod("PostfixSendCommandInternal", BindingFlags.NonPublic | BindingFlags.Static);
+            MethodInfo postfixRpc = typeof(NetworkLog).GetMethod("PostfixSendRPCInternal", BindingFlags.NonPublic | BindingFlags.Static);
+            MethodInfo postfixTargetRpc = typeof(NetworkLog).GetMethod("PostfixSendTargetRPCInternal", BindingFlags.NonPublic | BindingFlags.Static);
+
+            PatchMethod(sendCommandInternal, postfixCommand);
+            PatchMethod(sendRpcInternal, postfixRpc);
+            PatchMethod(sendTargetRpcInternal, postfixTargetRpc);
 
             _isPatched = true;
-        }
-
-        private static MethodInfo GetPostfix(string methodName)
-        {
-            return typeof(NetworkLog).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
         }
 
         private static void PatchMethod(MethodBase original, MethodInfo postfix)

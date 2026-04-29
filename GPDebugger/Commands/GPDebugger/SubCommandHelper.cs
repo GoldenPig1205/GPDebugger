@@ -2,21 +2,20 @@ using CommandSystem;
 using Exiled.API.Features;
 using GPDebugger.Features;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace GPDebugger.Commands.GPDebugger
 {
-    internal static class GPDebuggerActions
+    internal static class SubCommandHelper
     {
-        private static System.Collections.Generic.List<System.Reflection.MethodInfo> _cachedGetMethods;
+        private static List<MethodInfo> _cachedGetMethods;
 
-        internal static bool ExecuteHelp(out string response)
-        {
-            response = BuildHelpMessage();
-            return false;
-        }
+        #region Help
 
         internal static string BuildHelpMessage()
         {
@@ -51,20 +50,36 @@ namespace GPDebugger.Commands.GPDebugger
                 "  Examples: gpdebug print player, gpdebug print player 8 CharacterController, gpdebug print hit Rigidbody\n";
         }
 
-        internal static bool ExecuteList(out string response)
+        #endregion
+
+        #region Handler
+
+        internal static bool ExecuteHandlerStart(ICommandSender sender, out string response)
         {
-            return ExecuteHandlerList(out response);
+            Player player = Player.Get(sender);
+            DebugManager.EnabledHandlerUsers.Add(player.UserId);
+            HandlerLog.RegisterAllEvents();
+            response = "Handler debug ON";
+            return true;
+        }
+
+        internal static bool ExecuteHandlerStop(ICommandSender sender, out string response)
+        {
+            Player player = Player.Get(sender);
+            DebugManager.EnabledHandlerUsers.Remove(player.UserId);
+            response = "Handler debug OFF";
+            return true;
         }
 
         internal static bool ExecuteHandlerList(out string response)
         {
-            var whitelist = DebugManager.HandlerWhitelist.OrderBy(x => x).ToArray();
-            var ignored = DebugManager.IgnoredHandlers.OrderBy(x => x).ToArray();
-            var active = DebugManager.KnownHandlers
+            string[] whitelist = DebugManager.HandlerWhitelist.OrderBy(x => x).ToArray();
+            string[] ignored = DebugManager.IgnoredHandlers.OrderBy(x => x).ToArray();
+            string[] active = DebugManager.KnownHandlers
                 .Where(x => (DebugManager.HandlerWhitelist.Count == 0 || DebugManager.HandlerWhitelist.Contains(x)) && !DebugManager.IgnoredHandlers.Contains(x))
                 .OrderBy(x => x)
                 .ToArray();
-            var classes = typeof(Server).Assembly.GetTypes()
+            string[] classes = typeof(Server).Assembly.GetTypes()
                 .Where(t => t.IsClass && t.Namespace == "Exiled.API.Features" && t.IsAbstract && t.IsSealed && !t.Name.Contains("<"))
                 .Select(t => t.Name)
                 .OrderBy(n => n)
@@ -75,55 +90,6 @@ namespace GPDebugger.Commands.GPDebugger
                 "\n\nIgnored handlers:\n- " + (ignored.Length > 0 ? string.Join("\n- ", ignored) : "None") +
                 "\n\nActive handlers:\n- " + (active.Length > 0 ? string.Join("\n- ", active) : "None") +
                 "\n\nAvailable Exiled.API.Features classes:\n- " + string.Join("\n- ", classes);
-            return true;
-        }
-
-        internal static bool ExecuteNetworkList(out string response)
-        {
-            var ignoredMethods = DebugManager.IgnoredNetworkMethods.OrderBy(x => x).ToArray();
-            var activeMethods = DebugManager.KnownNetworkMethods.Where(x => !DebugManager.IgnoredNetworkMethods.Contains(x)).OrderBy(x => x).ToArray();
-            var ignoredMessages = DebugManager.IgnoredNetworkMessages.OrderBy(x => x).ToArray();
-            var activeMessages = DebugManager.KnownNetworkMessages.Where(x => !DebugManager.IgnoredNetworkMessages.Contains(x)).OrderBy(x => x).ToArray();
-
-            response =
-                "Ignored network methods:\n- " + (ignoredMethods.Length > 0 ? string.Join("\n- ", ignoredMethods) : "None") +
-                "\n\nActive network methods:\n- " + (activeMethods.Length > 0 ? string.Join("\n- ", activeMethods) : "None") +
-                "\n\nIgnored network messages:\n- " + (ignoredMessages.Length > 0 ? string.Join("\n- ", ignoredMessages) : "None") +
-                "\n\nActive network messages:\n- " + (activeMessages.Length > 0 ? string.Join("\n- ", activeMessages) : "None");
-            return true;
-        }
-
-        internal static bool ExecuteHandlerStart(ICommandSender sender, out string response)
-        {
-            var player = Player.Get(sender);
-            DebugManager.EnabledHandlerUsers.Add(player.UserId);
-            HandlerLog.RegisterAllEvents();
-            response = "Handler debug ON";
-            return true;
-        }
-
-        internal static bool ExecuteHandlerStop(ICommandSender sender, out string response)
-        {
-            var player = Player.Get(sender);
-            DebugManager.EnabledHandlerUsers.Remove(player.UserId);
-            response = "Handler debug OFF";
-            return true;
-        }
-
-        internal static bool ExecuteNetworkStart(ICommandSender sender, out string response)
-        {
-            var player = Player.Get(sender);
-            DebugManager.EnabledNetworkUsers.Add(player.UserId);
-            NetworkLog.RegisterAllEvents();
-            response = "Network debug ON";
-            return true;
-        }
-
-        internal static bool ExecuteNetworkStop(ICommandSender sender, out string response)
-        {
-            var player = Player.Get(sender);
-            DebugManager.EnabledNetworkUsers.Remove(player.UserId);
-            response = "Network debug OFF";
             return true;
         }
 
@@ -189,6 +155,42 @@ namespace GPDebugger.Commands.GPDebugger
             return false;
         }
 
+        #endregion
+
+        #region Network
+
+        internal static bool ExecuteNetworkStart(ICommandSender sender, out string response)
+        {
+            Player player = Player.Get(sender);
+            DebugManager.EnabledNetworkUsers.Add(player.UserId);
+            NetworkLog.RegisterAllEvents();
+            response = "Network debug ON";
+            return true;
+        }
+
+        internal static bool ExecuteNetworkStop(ICommandSender sender, out string response)
+        {
+            Player player = Player.Get(sender);
+            DebugManager.EnabledNetworkUsers.Remove(player.UserId);
+            response = "Network debug OFF";
+            return true;
+        }
+
+        internal static bool ExecuteNetworkList(out string response)
+        {
+            string[] ignoredMethods = DebugManager.IgnoredNetworkMethods.OrderBy(x => x).ToArray();
+            string[] activeMethods = DebugManager.KnownNetworkMethods.Where(x => !DebugManager.IgnoredNetworkMethods.Contains(x)).OrderBy(x => x).ToArray();
+            string[] ignoredMessages = DebugManager.IgnoredNetworkMessages.OrderBy(x => x).ToArray();
+            string[] activeMessages = DebugManager.KnownNetworkMessages.Where(x => !DebugManager.IgnoredNetworkMessages.Contains(x)).OrderBy(x => x).ToArray();
+
+            response =
+                "Ignored network methods:\n- " + (ignoredMethods.Length > 0 ? string.Join("\n- ", ignoredMethods) : "None") +
+                "\n\nActive network methods:\n- " + (activeMethods.Length > 0 ? string.Join("\n- ", activeMethods) : "None") +
+                "\n\nIgnored network messages:\n- " + (ignoredMessages.Length > 0 ? string.Join("\n- ", ignoredMessages) : "None") +
+                "\n\nActive network messages:\n- " + (activeMessages.Length > 0 ? string.Join("\n- ", activeMessages) : "None");
+            return true;
+        }
+
         internal static bool ExecuteNetwork(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             if (arguments.Count < 1)
@@ -240,8 +242,8 @@ namespace GPDebugger.Commands.GPDebugger
 
                 if (ignoreAction == "remove")
                 {
-                    var removedMethod = DebugManager.IgnoredNetworkMethods.Remove(name);
-                    var removedMessage = DebugManager.IgnoredNetworkMessages.Remove(name);
+                    bool removedMethod = DebugManager.IgnoredNetworkMethods.Remove(name);
+                    bool removedMessage = DebugManager.IgnoredNetworkMessages.Remove(name);
 
                     if (removedMethod || removedMessage)
                     {
@@ -261,15 +263,23 @@ namespace GPDebugger.Commands.GPDebugger
             return false;
         }
 
+        #endregion
+
+        #region Ignore
+
         internal static bool ExecuteIgnore(ArraySegment<string> arguments, out string response)
         {
             response = "Use gpdebug handler ignore or gpdebug network ignore.";
             return false;
         }
 
+        #endregion
+
+        #region Print
+
         internal static bool ExecutePrint(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            var player = Player.Get(sender);
+            Player player = Player.Get(sender);
 
             if (arguments.Count < 1)
             {
@@ -281,16 +291,16 @@ namespace GPDebugger.Commands.GPDebugger
 
             if (targetTypeInfo == "hit")
             {
-                var startPos = player.CameraTransform.position + player.CameraTransform.forward * 0.2f;
+                UnityEngine.Vector3 startPos = player.CameraTransform.position + player.CameraTransform.forward * 0.2f;
                 if (UnityEngine.Physics.Raycast(startPos, player.CameraTransform.forward, out UnityEngine.RaycastHit hit, 100f))
                 {
                     EnsureCacheInit();
-                    var targetGo = hit.collider.gameObject;
+                    UnityEngine.GameObject targetGo = hit.collider.gameObject;
 
                     if (arguments.Count >= 2)
                     {
                         string componentName = arguments.At(1);
-                        var component = targetGo.GetComponent(componentName);
+                        UnityEngine.Component component = targetGo.GetComponent(componentName);
                         if (component != null)
                         {
                             response = PrintProperties(component.GetType(), component, $"--- {component.GetType().Name} Info ---");
@@ -303,16 +313,17 @@ namespace GPDebugger.Commands.GPDebugger
                         return false;
                     }
 
-                    var foundObjects = new System.Collections.Generic.HashSet<object>();
-                    var currentTransform = targetGo.transform;
+                    HashSet<object> foundObjects = new HashSet<object>();
+                    UnityEngine.Transform currentTransform = targetGo.transform;
 
                     while (currentTransform != null && foundObjects.Count == 0)
                     {
-                        foreach (var method in _cachedGetMethods)
+                        foreach (MethodInfo method in _cachedGetMethods)
                         {
                             try
                             {
-                                var paramType = method.GetParameters()[0].ParameterType;
+                                ParameterInfo[] methodParams = method.GetParameters();
+                                Type paramType = methodParams[0].ParameterType;
                                 object arg = null;
 
                                 if (paramType == typeof(UnityEngine.GameObject)) arg = currentTransform.gameObject;
@@ -321,7 +332,7 @@ namespace GPDebugger.Commands.GPDebugger
 
                                 if (arg != null)
                                 {
-                                    var result = method.Invoke(null, new[] { arg });
+                                    object result = method.Invoke(null, new[] { arg });
                                     if (result != null)
                                     {
                                         foundObjects.Add(result);
@@ -339,8 +350,8 @@ namespace GPDebugger.Commands.GPDebugger
 
                     if (foundObjects.Count > 0)
                     {
-                        var sb = new System.Text.StringBuilder();
-                        foreach (var obj in foundObjects)
+                        StringBuilder sb = new StringBuilder();
+                        foreach (object obj in foundObjects)
                         {
                             sb.AppendLine(PrintProperties(obj.GetType(), obj, $"--- {obj.GetType().Name} Info ---"));
                         }
@@ -384,7 +395,7 @@ namespace GPDebugger.Commands.GPDebugger
                     }
                     else
                     {
-                        var testPlayer = Player.Get(secondArg);
+                        Player testPlayer = Player.Get(secondArg);
                         if (testPlayer != null)
                         {
                             targetPlayer = testPlayer;
@@ -398,7 +409,7 @@ namespace GPDebugger.Commands.GPDebugger
 
                 if (componentName != null && targetPlayer.GameObject != null)
                 {
-                    var component = targetPlayer.GameObject.GetComponent(componentName);
+                    UnityEngine.Component component = targetPlayer.GameObject.GetComponent(componentName);
                     if (component != null)
                     {
                         response = PrintProperties(component.GetType(), component, $"--- {component.GetType().Name} Info ---");
@@ -419,7 +430,7 @@ namespace GPDebugger.Commands.GPDebugger
                 return true;
             }
 
-            var targetType = typeof(Server).Assembly.GetTypes()
+            Type targetType = typeof(Server).Assembly.GetTypes()
                 .FirstOrDefault(t => t.IsClass && t.Namespace == "Exiled.API.Features" && t.IsAbstract && t.IsSealed && t.Name.Equals(targetTypeInfo, StringComparison.OrdinalIgnoreCase));
 
             if (targetType != null)
@@ -439,13 +450,13 @@ namespace GPDebugger.Commands.GPDebugger
             if (gameObject == null)
                 return string.Empty;
 
-            var components = gameObject.GetComponents<UnityEngine.Component>();
+            UnityEngine.Component[] components = gameObject.GetComponents<UnityEngine.Component>();
             if (components.Length == 0)
                 return "\n<size=15>Components: <color=gray>None</color></size>";
 
-            var sb = new System.Text.StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine("\n<size=15>Components:</size>");
-            foreach (var component in components)
+            foreach (UnityEngine.Component component in components)
             {
                 sb.AppendLine($"<size=15>- {component.GetType().Name}</size>");
             }
@@ -455,18 +466,20 @@ namespace GPDebugger.Commands.GPDebugger
         private static void EnsureCacheInit()
         {
             if (_cachedGetMethods != null) return;
-            _cachedGetMethods = new System.Collections.Generic.List<System.Reflection.MethodInfo>();
+            _cachedGetMethods = new List<MethodInfo>();
 
-            var types = typeof(Server).Assembly.GetTypes()
-                .Where(t => t.IsClass && !string.IsNullOrEmpty(t.Namespace) && t.Namespace.StartsWith("Exiled.API.Features"));
+            Type[] types = typeof(Server).Assembly.GetTypes()
+                .Where(t => t.IsClass && !string.IsNullOrEmpty(t.Namespace) && t.Namespace.StartsWith("Exiled.API.Features"))
+                .ToArray();
 
-            foreach (var type in types)
+            foreach (Type type in types)
             {
-                foreach (var method in type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                foreach (MethodInfo method in methods)
                 {
                     if (method.Name == "Get" && method.GetParameters().Length == 1)
                     {
-                        var paramType = method.GetParameters()[0].ParameterType;
+                        Type paramType = method.GetParameters()[0].ParameterType;
                         if (paramType == typeof(UnityEngine.GameObject) ||
                             paramType == typeof(UnityEngine.Transform) ||
                             paramType == typeof(UnityEngine.Collider))
@@ -499,8 +512,8 @@ namespace GPDebugger.Commands.GPDebugger
             }
             else if (val is System.Collections.IEnumerable enumerable && !(val is string))
             {
-                var items = new System.Collections.Generic.List<string>();
-                foreach (var item in enumerable)
+                List<string> items = new List<string>();
+                foreach (object item in enumerable)
                 {
                     items.Add(item?.ToString() ?? "null");
                 }
@@ -511,13 +524,15 @@ namespace GPDebugger.Commands.GPDebugger
                 valStr = val?.ToString() ?? "null";
                 if (val != null && (valStr == val.GetType().ToString() || val.GetType().IsValueType && !val.GetType().IsPrimitive && !val.GetType().IsEnum))
                 {
-                    var subItems = new System.Collections.Generic.List<string>();
-                    foreach (var p in val.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                    List<string> subItems = new List<string>();
+                    PropertyInfo[] properties = val.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (PropertyInfo p in properties)
                     {
                         if (p.GetIndexParameters().Length > 0) continue;
                         try { subItems.Add($"{p.Name}: {p.GetValue(val)}"); } catch { }
                     }
-                    foreach (var f in val.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                    FieldInfo[] fields = val.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (FieldInfo f in fields)
                     {
                         try { subItems.Add($"{f.Name}: {f.GetValue(val)}"); } catch { }
                     }
@@ -531,13 +546,14 @@ namespace GPDebugger.Commands.GPDebugger
 
         internal static string PrintProperties(Type type, object instance, string header)
         {
-            var sb = new System.Text.StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine(header);
 
-            var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
-            if (instance != null) flags |= System.Reflection.BindingFlags.Instance;
+            BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
+            if (instance != null) flags |= BindingFlags.Instance;
 
-            foreach (var prop in type.GetProperties(flags))
+            PropertyInfo[] properties = type.GetProperties(flags);
+            foreach (PropertyInfo prop in properties)
             {
                 if (prop.GetIndexParameters().Length > 0) continue;
                 try
@@ -562,9 +578,11 @@ namespace GPDebugger.Commands.GPDebugger
                 }
             }
 
-            return "\n" + string.Join("\n", sb.ToString()
-                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => $"<size=15>{line}</size>"));
+            string[] lines = sb.ToString().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] formatted = lines.Select(line => $"<size=15>{line}</size>").ToArray();
+            return "\n" + string.Join("\n", formatted);
         }
+
+        #endregion
     }
 }

@@ -16,9 +16,10 @@ namespace GPDebugger.Features
             if (IsRegistered)
                 return;
 
-            var assembly = typeof(Exiled.Events.Handlers.Player).Assembly;
+            System.Reflection.Assembly assembly = typeof(Exiled.Events.Handlers.Player).Assembly;
 
-            foreach (var type in assembly.GetTypes())
+            Type[] types = assembly.GetTypes();
+            foreach (Type type in types)
             {
                 if (!type.IsClass)
                     continue;
@@ -29,24 +30,25 @@ namespace GPDebugger.Features
                 string handlerName = type.Name;
                 DebugManager.KnownHandlers.Add(handlerName);
 
-                foreach (var eventInfo in type.GetEvents(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                System.Reflection.EventInfo[] events = type.GetEvents(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                foreach (System.Reflection.EventInfo eventInfo in events)
                 {
                     try
                     {
-                        var handlerType = eventInfo.EventHandlerType;
-                        var invoke = handlerType.GetMethod("Invoke");
-                        var parameters = invoke.GetParameters();
+                        Type handlerType = eventInfo.EventHandlerType;
+                        System.Reflection.MethodInfo invoke = handlerType.GetMethod("Invoke");
+                        System.Reflection.ParameterInfo[] parameters = invoke.GetParameters();
 
                         if (parameters.Length != 1)
                             continue;
 
-                        var paramType = parameters[0].ParameterType;
+                        Type paramType = parameters[0].ParameterType;
 
-                        var method = typeof(HandlerLog)
+                        System.Reflection.MethodInfo method = typeof(HandlerLog)
                             .GetMethod(nameof(GenericHandler))
                             .MakeGenericMethod(paramType);
 
-                        var del = Delegate.CreateDelegate(handlerType, method);
+                        Delegate del = Delegate.CreateDelegate(handlerType, method);
 
                         eventInfo.AddEventHandler(null, del);
 
@@ -55,19 +57,20 @@ namespace GPDebugger.Features
                     catch { }
                 }
 
-                foreach (var propInfo in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                System.Reflection.PropertyInfo[] properties = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                foreach (System.Reflection.PropertyInfo propInfo in properties)
                 {
                     try
                     {
-                        var propType = propInfo.PropertyType;
+                        Type propType = propInfo.PropertyType;
                         if (!propType.Name.StartsWith("Event"))
                             continue;
 
-                        var eventObj = propInfo.GetValue(null);
+                        object eventObj = propInfo.GetValue(null);
                         if (eventObj == null)
                             continue;
 
-                        var subscribeMethod = propType.GetMethods().FirstOrDefault(m =>
+                        System.Reflection.MethodInfo subscribeMethod = propType.GetMethods().FirstOrDefault(m =>
                             m.Name == "Subscribe" &&
                             m.GetParameters().Length == 1 &&
                             m.GetParameters()[0].ParameterType.Name.StartsWith("CustomEventHandler"));
@@ -75,20 +78,20 @@ namespace GPDebugger.Features
                         if (subscribeMethod == null)
                             continue;
 
-                        var handlerType = subscribeMethod.GetParameters()[0].ParameterType;
-                        var invoke = handlerType.GetMethod("Invoke");
-                        var parameters = invoke.GetParameters();
+                        Type handlerType = subscribeMethod.GetParameters()[0].ParameterType;
+                        System.Reflection.MethodInfo invoke = handlerType.GetMethod("Invoke");
+                        System.Reflection.ParameterInfo[] parameters = invoke.GetParameters();
 
                         if (parameters.Length != 1)
                             continue;
 
-                        var paramType = parameters[0].ParameterType;
+                        Type paramType = parameters[0].ParameterType;
 
-                        var method = typeof(HandlerLog)
+                        System.Reflection.MethodInfo method = typeof(HandlerLog)
                             .GetMethod(nameof(GenericHandler))
                             .MakeGenericMethod(paramType);
 
-                        var del = Delegate.CreateDelegate(handlerType, method);
+                        Delegate del = Delegate.CreateDelegate(handlerType, method);
 
                         subscribeMethod.Invoke(eventObj, new object[] { del });
 
@@ -106,9 +109,9 @@ namespace GPDebugger.Features
             if (DebugManager.EnabledHandlerUsers.Count == 0)
                 return;
 
-            var type = typeof(T);
+            Type type = typeof(T);
 
-            if (!HandlersMap.TryGetValue(type, out var handler))
+            if (!HandlersMap.TryGetValue(type, out string handler))
                 handler = "Unknown";
 
             if (!DebugManager.IsHandlerEnabled(handler))
@@ -122,11 +125,11 @@ namespace GPDebugger.Features
             int limit = Main.Instance.Config.ConsoleMessageLengthLimit;
             if (evString.Length > limit)
                 evString = evString.Substring(0, limit) + "...";
-
             string header = $"[EVENT] <color=#55aaff>{eventName}</color>\n[ToString] {evString}";
-            string message = GPDebuggerActions.PrintProperties(type, ev, header);
+            string message = SubCommandHelper.PrintProperties(type, ev, header);
 
-            foreach (var playerUserId in DebugManager.EnabledHandlerUsers.ToList())
+            List<string> enabledUsers = DebugManager.EnabledHandlerUsers.ToList();
+            foreach (string playerUserId in enabledUsers)
             {
                 Player player = Player.Get(playerUserId);
                 if (player == null)

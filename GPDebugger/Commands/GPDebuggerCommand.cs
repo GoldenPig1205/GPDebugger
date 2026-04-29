@@ -25,7 +25,7 @@ namespace GPDebugger.Commands
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            response = GPDebuggerActions.BuildHelpMessage();
+            response = SubCommandHelper.BuildHelpMessage();
             return false;
         }
     }

@@ -10,6 +10,6 @@ namespace GPDebugger.Commands.GPDebugger
         public string[] Usage => new[] { "<class/player/hit> [playerName]" };
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-            => GPDebuggerActions.ExecutePrint(arguments, sender, out response);
+            => SubCommandHelper.ExecutePrint(arguments, sender, out response);
     }
 }
