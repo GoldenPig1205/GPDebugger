@@ -47,7 +47,12 @@ namespace GPDebugger.Commands.GPDebugger
                 "  class: Prints public static properties of an Exiled.API.Features class (e.g. Server, Map).\n" +
                 "  player: Prints player properties (self or target player). Optionally specify [componentName] to inspect a component.\n" +
                 "  hit: Prints object info you are looking at. Optionally specify [componentName] to inspect a component.\n" +
-                "  Examples: gpdebug print player, gpdebug print player 8 CharacterController, gpdebug print hit Rigidbody\n";
+                "  Examples: gpdebug print player, gpdebug print player 8 CharacterController, gpdebug print hit Rigidbody\n" +
+                "- <color=white>gpdebug search <name></color>\n" +
+                "  Searches scene Transform objects by name and lists position, scale, and bounds size.\n" +
+                "- <color=white>gpdebug search <name> <number></color>\n" +
+                "  Teleports you to the numbered search result.\n" +
+                "  Aliases: gpdebug find <name>, gpdebug transform <name>, gpdebug tf <name>\n";
         }
 
         #endregion
@@ -271,6 +276,163 @@ namespace GPDebugger.Commands.GPDebugger
         {
             response = "Use gpdebug handler ignore or gpdebug network ignore.";
             return false;
+        }
+
+        #endregion
+
+        #region Search
+
+        internal static bool ExecuteSearch(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            Player player = Player.Get(sender);
+
+            if (arguments.Count < 1)
+            {
+                response = "Usage: GPDebugger search <name>";
+                return false;
+            }
+
+            bool shouldTeleport = TryParseSearchArguments(arguments, out string query, out int resultNumber);
+            const int maxResults = 50;
+
+            UnityEngine.Transform[] matches = UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Transform>()
+                .Where(transform => transform != null &&
+                                    transform.gameObject != null &&
+                                    transform.gameObject.scene.IsValid() &&
+                                    transform.name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                .OrderBy(transform => GetTransformPath(transform))
+                .ToArray();
+
+            if (matches.Length == 0)
+            {
+                response = $"No Transform found with name containing '{query}'.";
+                return false;
+            }
+
+            int listedCount = Math.Min(matches.Length, maxResults);
+            if (shouldTeleport)
+            {
+                if (player == null)
+                {
+                    response = "Only an in-game player can teleport to a search result.";
+                    return false;
+                }
+
+                if (resultNumber < 1 || resultNumber > listedCount)
+                {
+                    response = $"Search result number must be between 1 and {listedCount}.";
+                    return false;
+                }
+
+                UnityEngine.Transform target = matches[resultNumber - 1];
+                player.Position = target.position;
+                response =
+                    $"Teleported to search result #{resultNumber}: {target.name}\n" +
+                    $"Path: {GetTransformPath(target)}\n" +
+                    $"Position: {FormatVector3(target.position)}";
+                player.SendConsoleMessage(response, "white");
+                ServerConsole.AddLog(StripRichText(response));
+                return true;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"--- Search: <color=#55aaff>{query}</color> ({matches.Length} Transform objects found) ---");
+            if (matches.Length > maxResults)
+                sb.AppendLine($"Showing first {maxResults} results.");
+
+            for (int i = 0; i < listedCount; i++)
+            {
+                sb.AppendLine(FormatSearchResult(matches[i], i + 1));
+            }
+
+            response = sb.ToString();
+            player?.SendConsoleMessage(response, "white");
+            ServerConsole.AddLog(StripRichText(response));
+            return true;
+        }
+
+        private static bool TryParseSearchArguments(ArraySegment<string> arguments, out string query, out int resultNumber)
+        {
+            resultNumber = 0;
+            int queryArgumentCount = arguments.Count;
+
+            if (arguments.Count >= 2 && int.TryParse(arguments.At(arguments.Count - 1), NumberStyles.None, CultureInfo.InvariantCulture, out int parsedNumber))
+            {
+                resultNumber = parsedNumber;
+                queryArgumentCount--;
+            }
+
+            query = string.Join(" ", arguments.Array.Skip(arguments.Offset).Take(queryArgumentCount));
+            return queryArgumentCount < arguments.Count;
+        }
+
+        private static string FormatSearchResult(UnityEngine.Transform transform, int number)
+        {
+            UnityEngine.GameObject gameObject = transform.gameObject;
+            UnityEngine.Vector3? rendererSize = TryGetRendererBoundsSize(gameObject);
+            UnityEngine.Vector3? colliderSize = TryGetColliderBoundsSize(gameObject);
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"<size=15>{number}. <b>{transform.name}</b> [{(gameObject.activeInHierarchy ? "Active" : "Inactive")}]</size>");
+            sb.AppendLine($"<size=15>  Path: {GetTransformPath(transform)}</size>");
+            sb.AppendLine($"<size=15>  Position: {FormatVector3(transform.position)} | Local: {FormatVector3(transform.localPosition)}</size>");
+            sb.AppendLine($"<size=15>  Rotation: {FormatVector3(transform.eulerAngles)} | Local: {FormatVector3(transform.localEulerAngles)}</size>");
+            sb.AppendLine($"<size=15>  Scale: {FormatVector3(transform.lossyScale)} | Local: {FormatVector3(transform.localScale)}</size>");
+            sb.AppendLine($"<size=15>  Bounds Size: Renderer={FormatNullableVector3(rendererSize)}, Collider={FormatNullableVector3(colliderSize)}</size>");
+            return sb.ToString();
+        }
+
+        private static string GetTransformPath(UnityEngine.Transform transform)
+        {
+            Stack<string> names = new Stack<string>();
+            UnityEngine.Transform current = transform;
+            while (current != null)
+            {
+                names.Push(current.name);
+                current = current.parent;
+            }
+
+            return string.Join("/", names);
+        }
+
+        private static UnityEngine.Vector3? TryGetRendererBoundsSize(UnityEngine.GameObject gameObject)
+        {
+            UnityEngine.Renderer[] renderers = gameObject.GetComponentsInChildren<UnityEngine.Renderer>(true);
+            if (renderers.Length == 0)
+                return null;
+
+            UnityEngine.Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            return bounds.size;
+        }
+
+        private static UnityEngine.Vector3? TryGetColliderBoundsSize(UnityEngine.GameObject gameObject)
+        {
+            UnityEngine.Collider[] colliders = gameObject.GetComponentsInChildren<UnityEngine.Collider>(true);
+            if (colliders.Length == 0)
+                return null;
+
+            UnityEngine.Bounds bounds = colliders[0].bounds;
+            for (int i = 1; i < colliders.Length; i++)
+            {
+                bounds.Encapsulate(colliders[i].bounds);
+            }
+
+            return bounds.size;
+        }
+
+        private static string FormatNullableVector3(UnityEngine.Vector3? value)
+        {
+            return value.HasValue ? FormatVector3(value.Value) : "None";
+        }
+
+        private static string FormatVector3(UnityEngine.Vector3 value)
+        {
+            return $"({value.x.ToString("0.###", CultureInfo.InvariantCulture)}, {value.y.ToString("0.###", CultureInfo.InvariantCulture)}, {value.z.ToString("0.###", CultureInfo.InvariantCulture)})";
         }
 
         #endregion

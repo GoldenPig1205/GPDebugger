@@ -19,6 +19,7 @@ https://github.com/user-attachments/assets/d0eafc0c-2b5f-4a38-ad05-4150d8e74eec
 - **Object inspection**: Use `gpdebug print hit` to inspect the object you are looking at.
 - **Component inspection**: Use `gpdebug print player/hit ComponentName` to inspect a specific component on a player or game object.
 - **Feature inspection**: Use `gpdebug print <class>` or `gpdebug print player` to inspect Exiled feature classes or players.
+- **Search**: Use `gpdebug search <name>` to find scene transforms by name, inspect their position/size, and teleport to a numbered result.
 
 ## Commands
 
@@ -42,6 +43,8 @@ Use these commands in the Remote Admin console.
 | `gpdebug print player [playerName] <ComponentName>` | Print component properties of a player. |
 | `gpdebug print hit` | Inspect the object you are looking at and matched Exiled API features. |
 | `gpdebug print hit <ComponentName>` | Inspect a specific component on the object you are looking at. |
+| `gpdebug search <name>` | Search scene transforms by name and list numbered results with position, rotation, scale, and bounds size. |
+| `gpdebug search <name> <number>` | Teleport yourself to the numbered search result. |
 
 ### Print Command Examples
 
@@ -53,6 +56,15 @@ gpdebug print player 8 Rigidbody               # Inspect player ID 8's Rigidbody
 gpdebug print hit                              # Inspect the object you are looking at
 gpdebug print hit Transform                    # Inspect the Transform component of the object you're looking at
 gpdebug print Server                           # Print Server class properties
+```
+
+### Search Command Examples
+
+```
+gpdebug search Door                            # List transforms with names containing Door
+gpdebug search Door 3                          # Teleport to result #3 from the Door search
+gpdebug search capybara                        # Matches names like capybara, capybara (1), and BigCapybaraDoor
+gpdebug search capybara 2                      # Teleport to result #2 from the capybara search
 ```
 
 ## Configuration
@@ -100,6 +112,9 @@ gp_debugger:
 - `network` logging is controlled at runtime with `gpdebug network start/stop`.
 - `ignored_network_methods` and `ignored_network_messages` hide specific network items.
 - Component names are case-sensitive (e.g., `CharacterController`, `Rigidbody`, `Transform`).
+- `search` uses case-insensitive partial matching, so `Door` can match `Door`, `Door (1)`, and `BreakableDoor`.
+- Search result numbers start at 1. `gpdebug search <name> <number>` teleports you to the numbered result shown by the same search.
+- Search output is limited to the first 50 results to keep the Remote Admin console readable.
 
 ## Requirements
 
