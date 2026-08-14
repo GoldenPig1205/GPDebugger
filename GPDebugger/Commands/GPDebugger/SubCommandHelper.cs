@@ -43,6 +43,8 @@ namespace GPDebugger.Commands.GPDebugger
                 "  Removes a network method or message from the ignore list.\n" +
                 "- <color=white>gpdebug network list</color>\n" +
                 "  Shows ignored and active network methods/messages.\n" +
+                "- <color=white>gpdebug pointer on/off</color>\n" +
+                "  Shows live information about the Transform under your crosshair using HintServiceMeow.\n" +
                 "- <color=white>gpdebug print <class/player/hit> [playerName] [componentName]</color>\n" +
                 "  class: Prints public static properties of an Exiled.API.Features class (e.g. Server, Map).\n" +
                 "  player: Prints player properties (self or target player). Optionally specify [componentName] to inspect a component.\n" +
@@ -280,6 +282,48 @@ namespace GPDebugger.Commands.GPDebugger
 
         #endregion
 
+        #region Pointer
+
+        internal static bool ExecutePointer(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            Player player = Player.Get(sender);
+            if (player == null)
+            {
+                response = "Only an in-game player can use the pointer Transform inspector.";
+                return false;
+            }
+
+            if (arguments.Count != 1)
+            {
+                response = "Usage: gpdebug pointer <on/off>";
+                return false;
+            }
+
+            string action = arguments.At(0).ToLowerInvariant();
+            if (action == "on")
+            {
+                bool newlyEnabled = TransformInspector.Start(player);
+                response = newlyEnabled
+                    ? "Pointer Transform inspector ON"
+                    : "Pointer Transform inspector is already ON";
+                return newlyEnabled;
+            }
+
+            if (action == "off")
+            {
+                bool wasEnabled = TransformInspector.Stop(player);
+                response = wasEnabled
+                    ? "Pointer Transform inspector OFF"
+                    : "Pointer Transform inspector is already OFF";
+                return wasEnabled;
+            }
+
+            response = "Usage: gpdebug pointer <on/off>";
+            return false;
+        }
+
+        #endregion
+
         #region Search
 
         internal static bool ExecuteSearch(ArraySegment<string> arguments, ICommandSender sender, out string response)
@@ -456,7 +500,6 @@ namespace GPDebugger.Commands.GPDebugger
                 UnityEngine.Vector3 startPos = player.CameraTransform.position + player.CameraTransform.forward * 0.2f;
                 if (UnityEngine.Physics.Raycast(startPos, player.CameraTransform.forward, out UnityEngine.RaycastHit hit, 100f))
                 {
-                    EnsureCacheInit();
                     UnityEngine.GameObject targetGo = hit.collider.gameObject;
 
                     if (arguments.Count >= 2)
@@ -475,58 +518,7 @@ namespace GPDebugger.Commands.GPDebugger
                         return false;
                     }
 
-                    HashSet<object> foundObjects = new HashSet<object>();
-                    UnityEngine.Transform currentTransform = targetGo.transform;
-
-                    while (currentTransform != null && foundObjects.Count == 0)
-                    {
-                        foreach (MethodInfo method in _cachedGetMethods)
-                        {
-                            try
-                            {
-                                ParameterInfo[] methodParams = method.GetParameters();
-                                Type paramType = methodParams[0].ParameterType;
-                                object arg = null;
-
-                                if (paramType == typeof(UnityEngine.GameObject)) arg = currentTransform.gameObject;
-                                else if (paramType == typeof(UnityEngine.Transform)) arg = currentTransform;
-                                else if (paramType == typeof(UnityEngine.Collider) && currentTransform == targetGo.transform) arg = hit.collider;
-
-                                if (arg != null)
-                                {
-                                    object result = method.Invoke(null, new[] { arg });
-                                    if (result != null)
-                                    {
-                                        foundObjects.Add(result);
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                            }
-                        }
-
-                        if (foundObjects.Count > 0) break;
-                        currentTransform = currentTransform.parent;
-                    }
-
-                    if (foundObjects.Count > 0)
-                    {
-                        StringBuilder sb = new StringBuilder();
-                        foreach (object obj in foundObjects)
-                        {
-                            sb.AppendLine(PrintProperties(obj.GetType(), obj, $"--- {obj.GetType().Name} Info ---"));
-                        }
-                        sb.Append(PrintGameObjectComponents(targetGo));
-
-                        response = sb.ToString();
-                        player?.SendConsoleMessage(response, "white");
-                        ServerConsole.AddLog(StripRichText(response));
-                        return true;
-                    }
-
-                    response = PrintProperties(typeof(UnityEngine.GameObject), targetGo, $"--- GameObject Info: <color=#55aaff>{targetGo.name}</color> ---");
-                    response += PrintGameObjectComponents(targetGo);
+                    response = BuildHitInspection(hit);
                     player?.SendConsoleMessage(response, "white");
                     ServerConsole.AddLog(StripRichText(response));
                     return true;
@@ -607,6 +599,68 @@ namespace GPDebugger.Commands.GPDebugger
             return false;
         }
 
+        internal static string BuildHitInspection(UnityEngine.RaycastHit hit)
+            => BuildObjectInspection(hit.collider.gameObject, hit.collider);
+
+        internal static string BuildObjectInspection(UnityEngine.GameObject targetGo, UnityEngine.Collider hitCollider = null)
+        {
+            if (targetGo == null)
+                return "Target GameObject is null.";
+
+            EnsureCacheInit();
+            HashSet<object> foundObjects = new HashSet<object>();
+            UnityEngine.Transform currentTransform = targetGo.transform;
+
+            while (currentTransform != null && foundObjects.Count == 0)
+            {
+                foreach (MethodInfo method in _cachedGetMethods)
+                {
+                    try
+                    {
+                        ParameterInfo[] methodParams = method.GetParameters();
+                        Type paramType = methodParams[0].ParameterType;
+                        object arg = null;
+
+                        if (paramType == typeof(UnityEngine.GameObject)) arg = currentTransform.gameObject;
+                        else if (paramType == typeof(UnityEngine.Transform)) arg = currentTransform;
+                        else if (paramType == typeof(UnityEngine.Collider) &&
+                                 hitCollider != null &&
+                                 currentTransform == targetGo.transform) arg = hitCollider;
+
+                        if (arg == null)
+                            continue;
+
+                        object result = method.Invoke(null, new[] { arg });
+                        if (result != null)
+                            foundObjects.Add(result);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (foundObjects.Count > 0)
+                    break;
+
+                currentTransform = currentTransform.parent;
+            }
+
+            if (foundObjects.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (object obj in foundObjects)
+                    sb.AppendLine(PrintProperties(obj.GetType(), obj, $"--- {obj.GetType().Name} Info ---"));
+                sb.Append(PrintGameObjectComponents(targetGo));
+                return sb.ToString();
+            }
+
+            string response = PrintProperties(
+                typeof(UnityEngine.GameObject),
+                targetGo,
+                $"--- GameObject Info: <color=#55aaff>{targetGo.name}</color> ---");
+            return response + PrintGameObjectComponents(targetGo);
+        }
+
         private static string PrintGameObjectComponents(UnityEngine.GameObject gameObject)
         {
             if (gameObject == null)
@@ -672,6 +726,22 @@ namespace GPDebugger.Commands.GPDebugger
             {
                 valStr = $"{v3} (new Vector3({v3.x.ToString("R", CultureInfo.InvariantCulture)}f, {v3.y.ToString("R", CultureInfo.InvariantCulture)}f, {v3.z.ToString("R", CultureInfo.InvariantCulture)}f);)";
             }
+            else if (val is UnityEngine.Quaternion quaternion)
+            {
+                UnityEngine.Vector3 euler = quaternion.eulerAngles;
+                valStr =
+                    $"({FormatCompactFloat(quaternion.x)}, {FormatCompactFloat(quaternion.y)}, " +
+                    $"{FormatCompactFloat(quaternion.z)}, {FormatCompactFloat(quaternion.w)}) " +
+                    $"Euler={FormatCompactVector3(euler)}";
+            }
+            else if (val is UnityEngine.Matrix4x4 matrix)
+            {
+                valStr =
+                    $"[{FormatCompactFloat(matrix.m00)}, {FormatCompactFloat(matrix.m01)}, {FormatCompactFloat(matrix.m02)}, {FormatCompactFloat(matrix.m03)}; " +
+                    $"{FormatCompactFloat(matrix.m10)}, {FormatCompactFloat(matrix.m11)}, {FormatCompactFloat(matrix.m12)}, {FormatCompactFloat(matrix.m13)}; " +
+                    $"{FormatCompactFloat(matrix.m20)}, {FormatCompactFloat(matrix.m21)}, {FormatCompactFloat(matrix.m22)}, {FormatCompactFloat(matrix.m23)}; " +
+                    $"{FormatCompactFloat(matrix.m30)}, {FormatCompactFloat(matrix.m31)}, {FormatCompactFloat(matrix.m32)}, {FormatCompactFloat(matrix.m33)}]";
+            }
             else if (val is System.Collections.IEnumerable enumerable && !(val is string))
             {
                 List<string> items = new List<string>();
@@ -706,15 +776,27 @@ namespace GPDebugger.Commands.GPDebugger
             return valStr;
         }
 
+        private static string FormatCompactFloat(float value)
+            => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+        private static string FormatCompactVector3(UnityEngine.Vector3 value)
+            => $"({FormatCompactFloat(value.x)}, {FormatCompactFloat(value.y)}, {FormatCompactFloat(value.z)})";
+
         internal static string PrintProperties(Type type, object instance, string header)
+            => PrintPropertiesCore(type, instance, header);
+
+        private static string PrintPropertiesCore(Type type, object instance, string header)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(header);
+            if (!string.IsNullOrWhiteSpace(header))
+                sb.AppendLine(header);
 
             BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
             if (instance != null) flags |= BindingFlags.Instance;
 
-            PropertyInfo[] properties = type.GetProperties(flags);
+            PropertyInfo[] properties = type.GetProperties(flags)
+                .OrderBy(prop => string.Equals(prop.Name, "name", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ToArray();
             foreach (PropertyInfo prop in properties)
             {
                 if (prop.GetIndexParameters().Length > 0) continue;
@@ -742,7 +824,7 @@ namespace GPDebugger.Commands.GPDebugger
 
             string[] lines = sb.ToString().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             string[] formatted = lines.Select(line => $"<size=15>{line}</size>").ToArray();
-            return "\n" + string.Join("\n", formatted);
+            return (string.IsNullOrWhiteSpace(header) ? string.Empty : "\n") + string.Join("\n", formatted);
         }
 
         #endregion

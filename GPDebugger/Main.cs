@@ -9,7 +9,7 @@ namespace GPDebugger
     {
         public override string Name => "GPDebugger";
         public override string Author => "GoldenPig1205";
-        public override Version Version { get; } = new(1, 0, 7);
+        public override Version Version { get; } = new(1, 0, 17);
         public override Version RequiredExiledVersion { get; } = new Version(9, 13, 2);
 
         public static Main Instance { get; set; }
@@ -23,6 +23,7 @@ namespace GPDebugger
 
             HandlerLog.RegisterAllEvents();
             NetworkLog.RegisterAllEvents();
+            TransformInspector.Register();
 
             Exiled.Events.Handlers.Server.WaitingForPlayers += OnWaitingForPlayers;
         }
@@ -30,6 +31,7 @@ namespace GPDebugger
         public override void OnDisabled()
         {
             Exiled.Events.Handlers.Server.WaitingForPlayers -= OnWaitingForPlayers;
+            TransformInspector.Unregister();
 
             Instance = null;
             base.OnDisabled();
@@ -39,6 +41,7 @@ namespace GPDebugger
         {
             DebugManager.EnabledHandlerUsers.Clear();
             DebugManager.EnabledNetworkUsers.Clear();
+            TransformInspector.StopAll();
         }
     }
 }

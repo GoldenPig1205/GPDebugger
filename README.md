@@ -20,6 +20,7 @@ https://github.com/user-attachments/assets/d0eafc0c-2b5f-4a38-ad05-4150d8e74eec
 - **Component inspection**: Use `gpdebug print player/hit ComponentName` to inspect a specific component on a player or game object.
 - **Feature inspection**: Use `gpdebug print <class>` or `gpdebug print player` to inspect Exiled feature classes or players.
 - **Search**: Use `gpdebug search <name>` to find scene transforms by name, inspect their position/size, and teleport to a numbered result.
+- **Live pointer inspection**: Use `gpdebug pointer on` to show detailed information about the Transform under your crosshair in a top-left HintServiceMeow overlay.
 
 ## Commands
 
@@ -38,6 +39,8 @@ Use these commands in the Remote Admin console.
 | `gpdebug network ignore add <Name>` | Ignore a network method or network message. |
 | `gpdebug network ignore remove <Name>` | Remove a network method or network message from the ignore list. |
 | `gpdebug network list` | Show ignored and active network methods/messages. |
+| `gpdebug pointer on` | Enable the live pointer Transform inspector. |
+| `gpdebug pointer off` | Disable the live pointer Transform inspector. |
 | `gpdebug print <class>` | Print public static properties of an Exiled feature class. |
 | `gpdebug print player [playerName]` | Print player properties for yourself or a target player. |
 | `gpdebug print player [playerName] <ComponentName>` | Print component properties of a player. |
@@ -75,6 +78,14 @@ gp_debugger:
   debug: false
   console_message_length_limit: 100
   console_message_color: 'white'
+  pointer_inspector_update_interval: 0.25
+  pointer_inspector_max_distance: 200
+  pointer_inspector_x_coordinate: 0
+  pointer_inspector_y_coordinate: 400
+  pointer_inspector_font_size: 15
+  pointer_inspector_max_lines: 40
+  pointer_inspector_transform_selection_radius: 0.35
+  pointer_inspector_scene_cache_lifetime: 5
   handler_whitelist: []
   ignored_handlers: []
   ignored_events:
@@ -119,6 +130,7 @@ gp_debugger:
 ## Requirements
 
 - [EXILED Framework](https://github.com/Exiled-Team/EXILED)
+- HintServiceMeow for EXILED
 
 ## Author
 

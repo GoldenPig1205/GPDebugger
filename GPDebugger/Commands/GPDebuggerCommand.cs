@@ -12,7 +12,7 @@ namespace GPDebugger.Commands
         public override string Command => "gpdebugger";
         public override string[] Aliases => new[] { "gpdebug" };
         public override string Description => "Debug tool";
-        public string[] Usage => new[] { "help/handler/network/print/search" };
+        public string[] Usage => new[] { "help/handler/network/pointer/print/search" };
 
         public override void LoadGeneratedCommands()
         {
@@ -20,6 +20,7 @@ namespace GPDebugger.Commands
             RegisterCommand(new ListSubCommand());
             RegisterCommand(new HandlerSubCommand());
             RegisterCommand(new NetworkSubCommand());
+            RegisterCommand(new PointerSubCommand());
             RegisterCommand(new PrintSubCommand());
             RegisterCommand(new SearchSubCommand());
         }
