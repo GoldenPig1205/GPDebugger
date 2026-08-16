@@ -21,6 +21,8 @@ https://github.com/user-attachments/assets/d0eafc0c-2b5f-4a38-ad05-4150d8e74eec
 - **Feature inspection**: Use `gpdebug print <class>` or `gpdebug print player` to inspect Exiled feature classes or players.
 - **Search**: Use `gpdebug search <name>` to find scene transforms by name, inspect their position/size, and teleport to a numbered result.
 - **Live pointer inspection**: Use `gpdebug pointer on` to show detailed information about the Transform under your crosshair in a top-left HintServiceMeow overlay.
+- **Prefab debugging**: Use `gpdebug prefab` to list, spawn, and safely remove network prefabs created by GPDebugger. `ggdebug` is also supported as an alias.
+- **Server time control**: Use `gpdebug time` to pause, resume, or slow down the server simulation for debugging.
 
 ## Commands
 
@@ -41,6 +43,18 @@ Use these commands in the Remote Admin console.
 | `gpdebug network list` | Show ignored and active network methods/messages. |
 | `gpdebug pointer on` | Enable the live pointer Transform inspector. |
 | `gpdebug pointer off` | Disable the live pointer Transform inspector. |
+| `gpdebug prefab list [filter]` | List or search available `PrefabType` names. |
+| `gpdebug prefab spawn <PrefabType/enumIndex>` | Spawn a tracked prefab by its name or the numeric index shown by `prefab list`. |
+| `gpdebug prefab remove` | Remove the tracked prefab under your crosshair. |
+| `gpdebug prefab remove <ID>` | Remove a tracked prefab by its GPDebugger ID. |
+| `gpdebug prefab remove all` | Remove every prefab spawned through GPDebugger. |
+| `gpdebug prefab lineup [spacing]` | Spawn every available prefab in a straight line with a `TextToy` name label. Default spacing is 5 metres. Aliases: `showcase`, `gallery`. |
+| `gpdebug time pause` | Set the server simulation time scale to `0`. |
+| `gpdebug time freeze` | Freeze other players, dynamic physics, pickups, and active grenade fuse timers while leaving the command user free to move. Doors remain usable. |
+| `gpdebug time unfreeze` | Restore the states captured by world freeze mode. |
+| `gpdebug time resume` | Restore the server simulation time scale to `1`. |
+| `gpdebug time scale <0-10>` | Set a custom simulation time scale, such as `0.25`. |
+| `gpdebug time status` | Display the current simulation time scale. |
 | `gpdebug print <class>` | Print public static properties of an Exiled feature class. |
 | `gpdebug print player [playerName]` | Print player properties for yourself or a target player. |
 | `gpdebug print player [playerName] <ComponentName>` | Print component properties of a player. |

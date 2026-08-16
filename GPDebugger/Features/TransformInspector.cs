@@ -134,7 +134,7 @@ namespace GPDebugger.Features
             Render(player, TruncateForOverlay(SubCommandHelper.BuildObjectInspection(target, hitCollider)));
         }
 
-        private static bool TrySelectTarget(Ray ray, float maxDistance, out GameObject target, out Collider hitCollider)
+        internal static bool TrySelectTarget(Ray ray, float maxDistance, out GameObject target, out Collider hitCollider)
         {
             target = null;
             hitCollider = null;

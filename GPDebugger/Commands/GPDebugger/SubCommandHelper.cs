@@ -45,6 +45,18 @@ namespace GPDebugger.Commands.GPDebugger
                 "  Shows ignored and active network methods/messages.\n" +
                 "- <color=white>gpdebug pointer on/off</color>\n" +
                 "  Shows live information about the Transform under your crosshair using HintServiceMeow.\n" +
+                "- <color=white>gpdebug prefab spawn <PrefabType/enumIndex></color>\n" +
+                "  Spawns a tracked network prefab at the point under your crosshair.\n" +
+                "- <color=white>gpdebug prefab remove [ID/all]</color>\n" +
+                "  Removes the tracked prefab under your crosshair, by ID, or all tracked prefabs.\n" +
+                "- <color=white>gpdebug prefab list [filter]</color>\n" +
+                "  Lists available PrefabType enum names.\n" +
+                "- <color=white>gpdebug prefab lineup [spacing]</color>\n" +
+                "  Spawns all prefab types in a straight showcase line with TextToy name labels.\n" +
+                "- <color=white>gpdebug time pause/freeze/unfreeze/resume/status</color>\n" +
+                "  Pauses global time, freezes the world except you, restores it, or displays status.\n" +
+                "- <color=white>gpdebug time scale <0-10></color>\n" +
+                "  Sets the server simulation time scale. A value of 0 pauses it.\n" +
                 "- <color=white>gpdebug print <class/player/hit> [playerName] [componentName]</color>\n" +
                 "  class: Prints public static properties of an Exiled.API.Features class (e.g. Server, Map).\n" +
                 "  player: Prints player properties (self or target player). Optionally specify [componentName] to inspect a component.\n" +
@@ -319,6 +331,227 @@ namespace GPDebugger.Commands.GPDebugger
             }
 
             response = "Usage: gpdebug pointer <on/off>";
+            return false;
+        }
+
+        #endregion
+
+        #region Prefab
+
+        internal static bool ExecutePrefab(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            if (arguments.Count < 1)
+            {
+                response = "Usage: gpdebug prefab <spawn/remove/list/lineup> [PrefabType/ID/all/filter/spacing]";
+                return false;
+            }
+
+            string action = arguments.At(0).ToLowerInvariant();
+            if (action == "list")
+            {
+                string filter = arguments.Count >= 2 ? arguments.At(1) : null;
+                response = DebugPrefabManager.BuildPrefabList(filter);
+                return true;
+            }
+
+            if (action == "spawn")
+            {
+                if (arguments.Count != 2)
+                {
+                    response = "Usage: gpdebug prefab spawn <PrefabType/enumIndex>";
+                    return false;
+                }
+
+                Player player = Player.Get(sender);
+                if (player == null)
+                {
+                    response = "Only an in-game player can choose a prefab spawn position.";
+                    return false;
+                }
+
+                return DebugPrefabManager.Spawn(player, arguments.At(1), out response);
+            }
+
+            if (action == "lineup" || action == "showcase" || action == "gallery")
+            {
+                if (arguments.Count > 2)
+                {
+                    response = "Usage: gpdebug prefab lineup [spacing]";
+                    return false;
+                }
+
+                float spacing = 5f;
+                if (arguments.Count == 2 &&
+                    !float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out spacing))
+                {
+                    response = "Spacing must be a number between 1 and 50 (example: gpdebug prefab lineup 6).";
+                    return false;
+                }
+
+                Player player = Player.Get(sender);
+                if (player == null)
+                {
+                    response = "Only an in-game player can choose the prefab lineup origin and direction.";
+                    return false;
+                }
+
+                return DebugPrefabManager.StartLineup(player, spacing, out response);
+            }
+
+            if (action == "remove")
+            {
+                if (arguments.Count == 1)
+                {
+                    Player player = Player.Get(sender);
+                    if (player == null)
+                    {
+                        response = "Only an in-game player can remove the prefab under the crosshair.";
+                        return false;
+                    }
+
+                    return DebugPrefabManager.RemoveLookTarget(player, out response);
+                }
+
+                if (arguments.Count != 2)
+                {
+                    response = "Usage: gpdebug prefab remove [ID/all]";
+                    return false;
+                }
+
+                string target = arguments.At(1);
+                if (string.Equals(target, "all", StringComparison.OrdinalIgnoreCase))
+                {
+                    int removed = DebugPrefabManager.DestroyAll();
+                    response = $"Removed {removed} GPDebugger prefab(s).";
+                    return true;
+                }
+
+                if (!int.TryParse(target, NumberStyles.None, CultureInfo.InvariantCulture, out int id))
+                {
+                    response = "Prefab ID must be a positive number or 'all'.";
+                    return false;
+                }
+
+                return DebugPrefabManager.Remove(id, out response);
+            }
+
+            response = "Usage: gpdebug prefab <spawn/remove/list/lineup> [PrefabType/ID/all/filter/spacing]";
+            return false;
+        }
+
+        #endregion
+
+        #region Time
+
+        internal static bool ExecuteTime(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            if (arguments.Count < 1)
+            {
+                response = "Usage: gpdebug time <pause/freeze/unfreeze/resume/scale/status> [0-10]";
+                return false;
+            }
+
+            string action = arguments.At(0).ToLowerInvariant();
+            if (action == "status")
+            {
+                string timeStatus = DebugTimeManager.IsPaused
+                    ? "Global time: PAUSED (timeScale: 0)"
+                    : $"Global timeScale: {DebugTimeManager.CurrentScale:0.###}";
+                string freezeStatus = DebugWorldFreezeManager.IsActive
+                    ? $"World freeze: ON (excluded: {DebugWorldFreezeManager.ExcludedNickname})"
+                    : "World freeze: OFF";
+                response = $"{timeStatus}\n{freezeStatus}";
+                return true;
+            }
+
+            if (action == "freeze")
+            {
+                if (arguments.Count != 1)
+                {
+                    response = "Usage: gpdebug time freeze";
+                    return false;
+                }
+
+                Player player = Player.Get(sender);
+                return DebugWorldFreezeManager.Freeze(player, out response);
+            }
+
+            if (action == "unfreeze")
+            {
+                if (arguments.Count != 1)
+                {
+                    response = "Usage: gpdebug time unfreeze";
+                    return false;
+                }
+
+                if (!DebugWorldFreezeManager.IsActive)
+                {
+                    response = "World freeze is not active.";
+                    return false;
+                }
+
+                int restored = DebugWorldFreezeManager.Resume();
+                response = $"World freeze disabled. Restored {restored} tracked state(s).";
+                return true;
+            }
+
+            if (action == "pause")
+            {
+                if (arguments.Count != 1)
+                {
+                    response = "Usage: gpdebug time pause";
+                    return false;
+                }
+
+                if (DebugTimeManager.IsPaused)
+                {
+                    response = "Server simulation time is already paused.";
+                    return false;
+                }
+
+                DebugWorldFreezeManager.Resume();
+                DebugTimeManager.TrySetScale(0f, out _);
+                response = "Server simulation time PAUSED. Use 'gpdebug time resume' to restore it.";
+                return true;
+            }
+
+            if (action == "resume")
+            {
+                if (arguments.Count != 1)
+                {
+                    response = "Usage: gpdebug time resume";
+                    return false;
+                }
+
+                int restored = DebugWorldFreezeManager.Resume();
+                DebugTimeManager.Restore();
+                response = restored > 0
+                    ? $"Server simulation time RESUMED (timeScale: 1). Restored {restored} world state(s)."
+                    : "Server simulation time RESUMED (timeScale: 1).";
+                return true;
+            }
+
+            if (action == "scale")
+            {
+                if (arguments.Count != 2 ||
+                    !float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out float scale))
+                {
+                    response = "Usage: gpdebug time scale <0-10> (example: gpdebug time scale 0.25)";
+                    return false;
+                }
+
+                if (!DebugTimeManager.TrySetScale(scale, out response))
+                    return false;
+
+                DebugWorldFreezeManager.Resume();
+
+                response = scale == 0f
+                    ? "Server simulation time PAUSED. Use 'gpdebug time resume' to restore it."
+                    : $"Server simulation time scale set to {scale:0.###}.";
+                return true;
+            }
+
+            response = "Usage: gpdebug time <pause/freeze/unfreeze/resume/scale/status> [0-10]";
             return false;
         }
 
