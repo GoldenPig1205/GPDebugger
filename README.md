@@ -62,6 +62,8 @@ Use these commands in the Remote Admin console.
 | `gpdebug print hit <ComponentName>` | Inspect a specific component on the object you are looking at. |
 | `gpdebug search <name>` | Search scene transforms by name and list numbered results with position, rotation, scale, and bounds size. |
 | `gpdebug search <name> <number>` | Teleport yourself to the numbered search result. |
+| `gpdebug search component <componentName>` | Search scene objects that have the specified Unity component. Component names and full type names are accepted. |
+| `gpdebug search component <componentName> <number>` | Teleport yourself to the numbered component-search result. |
 
 ### Print Command Examples
 
@@ -82,6 +84,9 @@ gpdebug search Door                            # List transforms with names cont
 gpdebug search Door 3                          # Teleport to result #3 from the Door search
 gpdebug search capybara                        # Matches names like capybara, capybara (1), and BigCapybaraDoor
 gpdebug search capybara 2                      # Teleport to result #2 from the capybara search
+gpdebug search component Rigidbody             # List scene objects with a Rigidbody
+gpdebug search component BoxCollider 3         # Teleport to component-search result #3
+gpdebug search component UnityEngine.MeshCollider # Full type names also work
 ```
 
 ## Configuration
@@ -139,6 +144,7 @@ gp_debugger:
 - Component names are case-sensitive (e.g., `CharacterController`, `Rigidbody`, `Transform`).
 - `search` uses case-insensitive partial matching, so `Door` can match `Door`, `Door (1)`, and `BreakableDoor`.
 - Search result numbers start at 1. `gpdebug search <name> <number>` teleports you to the numbered result shown by the same search.
+- `search component` uses case-insensitive exact matching for a component's short or full type name. It uses Unity's component lookup, so a base type such as `Collider` also finds objects with derived collider types.
 - Search output is limited to the first 50 results to keep the Remote Admin console readable.
 
 ## Requirements

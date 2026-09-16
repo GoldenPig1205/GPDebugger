@@ -66,6 +66,8 @@ namespace GPDebugger.Commands.GPDebugger
                 "  Searches scene Transform objects by name and lists position, scale, and bounds size.\n" +
                 "- <color=white>gpdebug search <name> <number></color>\n" +
                 "  Teleports you to the numbered search result.\n" +
+                "- <color=white>gpdebug search component <componentName> [number]</color>\n" +
+                "  Searches scene objects that have the specified Unity component; optionally teleport to a result.\n" +
                 "  Aliases: gpdebug find <name>, gpdebug transform <name>, gpdebug tf <name>\n";
         }
 
@@ -565,8 +567,15 @@ namespace GPDebugger.Commands.GPDebugger
 
             if (arguments.Count < 1)
             {
-                response = "Usage: GPDebugger search <name>";
+                response = "Usage: gpdebug search <name> [number] | gpdebug search component <componentName> [number]";
                 return false;
+            }
+
+            bool isComponentSearch = arguments.At(0).Equals("component", StringComparison.OrdinalIgnoreCase);
+            if (isComponentSearch)
+            {
+                ArraySegment<string> componentArguments = new ArraySegment<string>(arguments.Array, arguments.Offset + 1, arguments.Count - 1);
+                return ExecuteComponentSearch(componentArguments, player, out response);
             }
 
             bool shouldTeleport = TryParseSearchArguments(arguments, out string query, out int resultNumber);
@@ -626,6 +635,123 @@ namespace GPDebugger.Commands.GPDebugger
             player?.SendConsoleMessage(response, "white");
             ServerConsole.AddLog(StripRichText(response));
             return true;
+        }
+
+        private static bool ExecuteComponentSearch(ArraySegment<string> arguments, Player player, out string response)
+        {
+            if (arguments.Count < 1)
+            {
+                response = "Usage: gpdebug search component <componentName> [number]";
+                return false;
+            }
+
+            bool shouldTeleport = TryParseSearchArguments(arguments, out string componentName, out int resultNumber);
+            if (string.IsNullOrWhiteSpace(componentName))
+            {
+                response = "Usage: gpdebug search component <componentName> [number]";
+                return false;
+            }
+
+            Type[] componentTypes = FindComponentTypes(componentName);
+            if (componentTypes.Length == 0)
+            {
+                response = $"Component type '{componentName}' was not found. Use its type name (for example: Rigidbody, BoxCollider, or Namespace.ComponentName).";
+                return false;
+            }
+
+            if (componentTypes.Length > 1)
+            {
+                response =
+                    $"Component name '{componentName}' is ambiguous. Use a full type name:\n- " +
+                    string.Join("\n- ", componentTypes.Select(type => type.FullName ?? type.Name));
+                return false;
+            }
+
+            Type componentType = componentTypes[0];
+            const int maxResults = 50;
+            UnityEngine.Transform[] matches = UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Transform>()
+                .Where(transform => transform != null &&
+                                    transform.gameObject != null &&
+                                    transform.gameObject.scene.IsValid() &&
+                                    transform.gameObject.GetComponent(componentType) != null)
+                .OrderBy(transform => GetTransformPath(transform))
+                .ToArray();
+
+            if (matches.Length == 0)
+            {
+                response = $"No scene object found with component '{componentType.FullName ?? componentType.Name}'.";
+                return false;
+            }
+
+            int listedCount = Math.Min(matches.Length, maxResults);
+            if (shouldTeleport)
+            {
+                if (player == null)
+                {
+                    response = "Only an in-game player can teleport to a search result.";
+                    return false;
+                }
+
+                if (resultNumber < 1 || resultNumber > listedCount)
+                {
+                    response = $"Search result number must be between 1 and {listedCount}.";
+                    return false;
+                }
+
+                UnityEngine.Transform target = matches[resultNumber - 1];
+                player.Position = target.position;
+                response =
+                    $"Teleported to component search result #{resultNumber}: {target.name}\n" +
+                    $"Component: {componentType.FullName ?? componentType.Name}\n" +
+                    $"Path: {GetTransformPath(target)}\n" +
+                    $"Position: {FormatVector3(target.position)}";
+                player.SendConsoleMessage(response, "white");
+                ServerConsole.AddLog(StripRichText(response));
+                return true;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"--- Component Search: <color=#55aaff>{componentType.FullName ?? componentType.Name}</color> ({matches.Length} scene objects found) ---");
+            if (matches.Length > maxResults)
+                sb.AppendLine($"Showing first {maxResults} results.");
+
+            for (int i = 0; i < listedCount; i++)
+                sb.AppendLine(FormatSearchResult(matches[i], i + 1));
+
+            response = sb.ToString();
+            player?.SendConsoleMessage(response, "white");
+            ServerConsole.AddLog(StripRichText(response));
+            return true;
+        }
+
+        private static Type[] FindComponentTypes(string componentName)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(GetLoadableTypes)
+                .Where(type => type != null &&
+                               typeof(UnityEngine.Component).IsAssignableFrom(type) &&
+                               !type.IsAbstract &&
+                               (type.Name.Equals(componentName, StringComparison.OrdinalIgnoreCase) ||
+                                (type.FullName != null && type.FullName.Equals(componentName, StringComparison.OrdinalIgnoreCase))))
+                .Distinct()
+                .OrderBy(type => type.FullName ?? type.Name)
+                .ToArray();
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException exception)
+            {
+                return exception.Types.Where(type => type != null);
+            }
+            catch
+            {
+                return Array.Empty<Type>();
+            }
         }
 
         private static bool TryParseSearchArguments(ArraySegment<string> arguments, out string query, out int resultNumber)
